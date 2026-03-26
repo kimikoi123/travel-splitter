@@ -1,13 +1,21 @@
 import { useState } from 'react';
 import { Plus, Trash2, Users, Receipt, ChevronRight } from 'lucide-react';
 import { CURRENCIES } from '../utils/currencies';
+import type { Trip } from '../types';
 
-export default function TripList({ trips, onSelect, onCreate, onDelete }) {
+interface TripListProps {
+  trips: Trip[];
+  onSelect: (id: string | null) => void;
+  onCreate: (name: string, currency?: string) => Trip;
+  onDelete: (id: string) => void;
+}
+
+export default function TripList({ trips, onSelect, onCreate, onDelete }: TripListProps) {
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
   const [currency, setCurrency] = useState('USD');
 
-  const handleCreate = (e) => {
+  const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
     onCreate(name.trim(), currency);

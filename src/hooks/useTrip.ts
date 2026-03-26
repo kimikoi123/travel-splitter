@@ -1,31 +1,37 @@
 import { useState, useCallback } from 'react';
 import { generateId } from '../utils/helpers';
+import type { Trip, TripState, Member, Expense } from '../types';
 
-const INITIAL_STATE = {
+const INITIAL_STATE: TripState = {
   trips: [],
   activeTripId: null,
 };
 
 export function useTrip() {
-  const [state, setState] = useState(() => {
+  const [state, setState] = useState<TripState>(() => {
     try {
       const saved = localStorage.getItem('splittrip-data');
-      if (saved) return JSON.parse(saved);
-    } catch {}
+      if (saved) {
+        const parsed = JSON.parse(saved) as unknown;
+        if (parsed && typeof parsed === 'object' && 'trips' in parsed) {
+          return parsed as TripState;
+        }
+      }
+    } catch { /* ignore */ }
     return INITIAL_STATE;
   });
 
-  const persist = useCallback((newState) => {
+  const persist = useCallback((newState: TripState) => {
     setState(newState);
     try {
       localStorage.setItem('splittrip-data', JSON.stringify(newState));
-    } catch {}
+    } catch { /* ignore */ }
   }, []);
 
-  const activeTrip = state.trips.find((t) => t.id === state.activeTripId) || null;
+  const activeTrip = state.trips.find((t) => t.id === state.activeTripId) ?? null;
 
-  const createTrip = useCallback((name, baseCurrency = 'USD') => {
-    const trip = {
+  const createTrip = useCallback((name: string, baseCurrency = 'USD'): Trip => {
+    const trip: Trip = {
       id: generateId(),
       name,
       baseCurrency,
@@ -33,7 +39,7 @@ export function useTrip() {
       expenses: [],
       createdAt: new Date().toISOString(),
     };
-    const newState = {
+    const newState: TripState = {
       trips: [...state.trips, trip],
       activeTripId: trip.id,
     };
@@ -41,7 +47,7 @@ export function useTrip() {
     return trip;
   }, [state, persist]);
 
-  const deleteTrip = useCallback((tripId) => {
+  const deleteTrip = useCallback((tripId: string) => {
     const newTrips = state.trips.filter((t) => t.id !== tripId);
     persist({
       trips: newTrips,
@@ -49,11 +55,11 @@ export function useTrip() {
     });
   }, [state, persist]);
 
-  const setActiveTrip = useCallback((tripId) => {
+  const setActiveTrip = useCallback((tripId: string | null) => {
     persist({ ...state, activeTripId: tripId });
   }, [state, persist]);
 
-  const updateTrip = useCallback((tripId, updates) => {
+  const updateTrip = useCallback((tripId: string, updates: Partial<Trip>) => {
     const newTrips = state.trips.map((t) =>
       t.id === tripId ? { ...t, ...updates } : t
     );
@@ -61,15 +67,15 @@ export function useTrip() {
   }, [state, persist]);
 
   // Member operations
-  const addMember = useCallback((name) => {
+  const addMember = useCallback((name: string): Member | undefined => {
     if (!activeTrip) return;
-    const member = { id: generateId(), name };
+    const member: Member = { id: generateId(), name };
     const newMembers = [...activeTrip.members, member];
     updateTrip(activeTrip.id, { members: newMembers });
     return member;
   }, [activeTrip, updateTrip]);
 
-  const removeMember = useCallback((memberId) => {
+  const removeMember = useCallback((memberId: string): boolean | undefined => {
     if (!activeTrip) return;
     const hasExpenses = activeTrip.expenses.some(
       (e) => e.paidBy === memberId || e.participants.includes(memberId)
@@ -81,9 +87,9 @@ export function useTrip() {
   }, [activeTrip, updateTrip]);
 
   // Expense operations
-  const addExpense = useCallback((expense) => {
+  const addExpense = useCallback((expense: Omit<Expense, 'id' | 'createdAt'>): Expense | undefined => {
     if (!activeTrip) return;
-    const newExpense = {
+    const newExpense: Expense = {
       ...expense,
       id: generateId(),
       createdAt: new Date().toISOString(),
@@ -93,13 +99,13 @@ export function useTrip() {
     return newExpense;
   }, [activeTrip, updateTrip]);
 
-  const removeExpense = useCallback((expenseId) => {
+  const removeExpense = useCallback((expenseId: string) => {
     if (!activeTrip) return;
     const newExpenses = activeTrip.expenses.filter((e) => e.id !== expenseId);
     updateTrip(activeTrip.id, { expenses: newExpenses });
   }, [activeTrip, updateTrip]);
 
-  const editExpense = useCallback((expenseId, updates) => {
+  const editExpense = useCallback((expenseId: string, updates: Partial<Expense>) => {
     if (!activeTrip) return;
     const newExpenses = activeTrip.expenses.map((e) =>
       e.id === expenseId ? { ...e, ...updates } : e
@@ -119,11 +125,11 @@ export function useTrip() {
     URL.revokeObjectURL(url);
   }, [state]);
 
-  const importData = useCallback((jsonString) => {
+  const importData = useCallback((jsonString: string): boolean => {
     try {
-      const data = JSON.parse(jsonString);
-      if (data.trips && Array.isArray(data.trips)) {
-        persist(data);
+      const data = JSON.parse(jsonString) as unknown;
+      if (data && typeof data === 'object' && 'trips' in data && Array.isArray((data as TripState).trips)) {
+        persist(data as TripState);
         return true;
       }
       return false;

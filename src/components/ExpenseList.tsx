@@ -1,7 +1,9 @@
 import { Trash2, Utensils, Car, Home, Ticket, ShoppingBag, ReceiptText } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { formatCurrency } from '../utils/currencies';
+import type { Expense, Member } from '../types';
 
-const CATEGORY_ICONS = {
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
   food: Utensils,
   transport: Car,
   accommodation: Home,
@@ -10,7 +12,7 @@ const CATEGORY_ICONS = {
   general: ReceiptText,
 };
 
-const CATEGORY_COLORS = {
+const CATEGORY_COLORS: Record<string, string> = {
   food: 'text-orange-400 bg-orange-400/15',
   transport: 'text-blue-400 bg-blue-400/15',
   accommodation: 'text-purple-400 bg-purple-400/15',
@@ -19,8 +21,14 @@ const CATEGORY_COLORS = {
   general: 'text-gray-400 bg-gray-400/15',
 };
 
-export default function ExpenseList({ expenses, members, onRemove }) {
-  const getMemberName = (id) => members.find((m) => m.id === id)?.name || 'Unknown';
+interface ExpenseListProps {
+  expenses: Expense[];
+  members: Member[];
+  onRemove: (id: string) => void;
+}
+
+export default function ExpenseList({ expenses, members, onRemove }: ExpenseListProps) {
+  const getMemberName = (id: string) => members.find((m) => m.id === id)?.name ?? 'Unknown';
 
   if (expenses.length === 0) {
     return (
@@ -34,8 +42,8 @@ export default function ExpenseList({ expenses, members, onRemove }) {
   return (
     <div className="space-y-2">
       {[...expenses].reverse().map((expense) => {
-        const Icon = CATEGORY_ICONS[expense.category] || ReceiptText;
-        const colorClass = CATEGORY_COLORS[expense.category] || CATEGORY_COLORS.general;
+        const Icon = CATEGORY_ICONS[expense.category] ?? ReceiptText;
+        const colorClass = CATEGORY_COLORS[expense.category] ?? CATEGORY_COLORS['general']!;
 
         return (
           <div

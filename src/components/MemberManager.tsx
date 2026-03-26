@@ -1,12 +1,19 @@
 import { useState } from 'react';
 import { Plus, X, UserPlus } from 'lucide-react';
 import { getInitials, getAvatarColor } from '../utils/helpers';
+import type { Member } from '../types';
 
-export default function MemberManager({ members, onAdd, onRemove }) {
+interface MemberManagerProps {
+  members: Member[];
+  onAdd: (name: string) => Member | undefined;
+  onRemove: (id: string) => boolean | undefined;
+}
+
+export default function MemberManager({ members, onAdd, onRemove }: MemberManagerProps) {
   const [name, setName] = useState('');
   const [showInput, setShowInput] = useState(false);
 
-  const handleAdd = (e) => {
+  const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
     onAdd(name.trim());

@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { fetchExchangeRates } from '../utils/exchangeRates';
 import { CURRENCIES } from '../utils/currencies';
+import type { ExchangeRates, RateSource } from '../types';
 
-function getHardcodedRates() {
-  const rates = {};
+function getHardcodedRates(): ExchangeRates {
+  const rates: ExchangeRates = {};
   for (const [code, curr] of Object.entries(CURRENCIES)) {
     rates[code] = curr.rate;
   }
@@ -11,10 +12,10 @@ function getHardcodedRates() {
 }
 
 export function useExchangeRates() {
-  const [rates, setRates] = useState(getHardcodedRates);
-  const [status, setStatus] = useState('loading'); // 'loading' | 'ready' | 'error'
-  const [lastUpdated, setLastUpdated] = useState(null);
-  const [source, setSource] = useState('fallback');
+  const [rates, setRates] = useState<ExchangeRates>(getHardcodedRates);
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const [source, setSource] = useState<RateSource>('fallback');
 
   const refresh = useCallback(async () => {
     setStatus('loading');

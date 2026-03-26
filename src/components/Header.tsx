@@ -1,15 +1,23 @@
 import { ArrowLeft, Download, Upload, PlaneTakeoff } from 'lucide-react';
 import { useRef } from 'react';
+import type { Trip } from '../types';
 
-export default function Header({ activeTrip, onBack, onExport, onImport }) {
-  const fileRef = useRef();
+interface HeaderProps {
+  activeTrip: Trip | null;
+  onBack: () => void;
+  onExport: () => void;
+  onImport: (json: string) => boolean;
+}
 
-  const handleImport = (e) => {
-    const file = e.target.files[0];
+export default function Header({ activeTrip, onBack, onExport, onImport }: HeaderProps) {
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
-      const success = onImport(ev.target.result);
+      const success = onImport(ev.target?.result as string);
       if (!success) alert('Invalid backup file');
     };
     reader.readAsText(file);
