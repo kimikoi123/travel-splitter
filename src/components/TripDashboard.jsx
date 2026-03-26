@@ -1,0 +1,140 @@
+import { useState } from 'react';
+import { Plus, Receipt, Scale, Users as UsersIcon, Settings } from 'lucide-react';
+import MemberManager from './MemberManager';
+import ExpenseForm from './ExpenseForm';
+import ExpenseList from './ExpenseList';
+import Settlement from './Settlement';
+import { CURRENCIES } from '../utils/currencies';
+
+const TABS = [
+  { id: 'expenses', label: 'Expenses', icon: Receipt },
+  { id: 'settle', label: 'Settle Up', icon: Scale },
+  { id: 'members', label: 'Members', icon: UsersIcon },
+];
+
+export default function TripDashboard({
+  trip,
+  onAddMember,
+  onRemoveMember,
+  onAddExpense,
+  onRemoveExpense,
+  onUpdateTrip,
+}) {
+  const [activeTab, setActiveTab] = useState('expenses');
+  const [showExpenseForm, setShowExpenseForm] = useState(false);
+
+  const handleAddExpense = (expense) => {
+    onAddExpense(expense);
+    setShowExpenseForm(false);
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto w-full p-4 sm:p-6">
+      {/* Quick Stats */}
+      <div className="grid grid-cols-3 gap-3 mb-4">
+        <div className="bg-surface rounded-xl border border-border p-3 text-center">
+          <p className="text-lg font-bold text-text-primary">{trip.members.length}</p>
+          <p className="text-[10px] text-text-secondary uppercase tracking-wide">Members</p>
+        </div>
+        <div className="bg-surface rounded-xl border border-border p-3 text-center">
+          <p className="text-lg font-bold text-text-primary">{trip.expenses.length}</p>
+          <p className="text-[10px] text-text-secondary uppercase tracking-wide">Expenses</p>
+        </div>
+        <div className="bg-surface rounded-xl border border-border p-3 text-center">
+          <p className="text-lg font-bold text-accent">
+            {CURRENCIES[trip.baseCurrency]?.symbol}
+            {trip.expenses
+              .reduce((sum, e) => {
+                const fromRate = CURRENCIES[e.currency]?.rate || 1;
+                const toRate = CURRENCIES[trip.baseCurrency]?.rate || 1;
+                return sum + (e.amount / fromRate) * toRate;
+              }, 0)
+              .toFixed(2)}
+          </p>
+          <p className="text-[10px] text-text-secondary uppercase tracking-wide">Total ({trip.baseCurrency})</p>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex bg-surface rounded-xl border border-border p-1 mb-4">
+        {TABS.map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === tab.id
+                  ? 'bg-primary text-white'
+                  : 'text-text-secondary hover:text-text-primary'
+              }`}
+            >
+              <Icon size={14} />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'expenses' && (
+        <div className="space-y-4">
+          {trip.members.length >= 2 && !showExpenseForm && (
+            <button
+              onClick={() => setShowExpenseForm(true)}
+              className="w-full py-3 border-2 border-dashed border-border hover:border-primary/50 rounded-xl text-sm text-text-secondary hover:text-primary transition-colors flex items-center justify-center gap-2"
+            >
+              <Plus size={16} />
+              Add Expense
+            </button>
+          )}
+
+          {trip.members.length < 2 && (
+            <div className="bg-accent/10 border border-accent/30 rounded-xl p-3 text-center">
+              <p className="text-sm text-accent">
+                Add at least 2 members before creating expenses
+              </p>
+              <button
+                onClick={() => setActiveTab('members')}
+                className="mt-2 text-xs text-accent underline"
+              >
+                Go to Members
+              </button>
+            </div>
+          )}
+
+          {showExpenseForm && (
+            <ExpenseForm
+              members={trip.members}
+              baseCurrency={trip.baseCurrency}
+              onAdd={handleAddExpense}
+              onCancel={() => setShowExpenseForm(false)}
+            />
+          )}
+
+          <ExpenseList
+            expenses={trip.expenses}
+            members={trip.members}
+            onRemove={onRemoveExpense}
+          />
+        </div>
+      )}
+
+      {activeTab === 'settle' && (
+        <Settlement
+          expenses={trip.expenses}
+          members={trip.members}
+          baseCurrency={trip.baseCurrency}
+        />
+      )}
+
+      {activeTab === 'members' && (
+        <MemberManager
+          members={trip.members}
+          onAdd={onAddMember}
+          onRemove={onRemoveMember}
+        />
+      )}
+    </div>
+  );
+}
