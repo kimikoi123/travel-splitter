@@ -1,4 +1,5 @@
 import { useTrip } from './hooks/useTrip';
+import { useExchangeRates } from './hooks/useExchangeRates';
 import Header from './components/Header';
 import TripList from './components/TripList';
 import TripDashboard from './components/TripDashboard';
@@ -20,6 +21,8 @@ function App() {
     importData,
   } = useTrip();
 
+  const exchangeRates = useExchangeRates();
+
   return (
     <div className="min-h-screen bg-[#13131f]">
       <Header
@@ -31,6 +34,7 @@ function App() {
       {activeTrip ? (
         <TripDashboard
           trip={activeTrip}
+          exchangeRates={exchangeRates}
           onAddMember={addMember}
           onRemoveMember={removeMember}
           onAddExpense={addExpense}

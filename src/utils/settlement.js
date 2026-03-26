@@ -4,12 +4,12 @@ import { convertToBase } from './currencies';
  * Calculate net balances for all members.
  * Positive = owed money, Negative = owes money.
  */
-export function calculateBalances(expenses, members, baseCurrency) {
+export function calculateBalances(expenses, members, baseCurrency, rates) {
   const balances = {};
   members.forEach((m) => (balances[m.id] = 0));
 
   expenses.forEach((expense) => {
-    const amountInBase = convertToBase(expense.amount, expense.currency, baseCurrency);
+    const amountInBase = convertToBase(expense.amount, expense.currency, baseCurrency, rates);
     const payer = expense.paidBy;
 
     // Payer gets credit

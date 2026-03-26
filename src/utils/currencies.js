@@ -16,9 +16,9 @@ export const CURRENCIES = {
   MXN: { symbol: 'MX$', name: 'Mexican Peso', rate: 17.15 },
 };
 
-export function convertToBase(amount, fromCurrency, baseCurrency) {
-  const fromRate = CURRENCIES[fromCurrency]?.rate || 1;
-  const toRate = CURRENCIES[baseCurrency]?.rate || 1;
+export function convertToBase(amount, fromCurrency, baseCurrency, rates) {
+  const fromRate = rates ? (rates[fromCurrency] ?? 1) : (CURRENCIES[fromCurrency]?.rate || 1);
+  const toRate = rates ? (rates[baseCurrency] ?? 1) : (CURRENCIES[baseCurrency]?.rate || 1);
   return (amount / fromRate) * toRate;
 }
 

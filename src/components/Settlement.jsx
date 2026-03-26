@@ -4,7 +4,7 @@ import { calculateBalances, calculateSimplifiedDebts, calculateFullDebts } from 
 import { formatCurrency, convertToBase } from '../utils/currencies';
 import { getInitials, getAvatarColor } from '../utils/helpers';
 
-export default function Settlement({ expenses, members, baseCurrency }) {
+export default function Settlement({ expenses, members, baseCurrency, rates }) {
   const [view, setView] = useState('simplified');
 
   if (members.length === 0 || expenses.length === 0) {
@@ -15,7 +15,7 @@ export default function Settlement({ expenses, members, baseCurrency }) {
     );
   }
 
-  const balances = calculateBalances(expenses, members, baseCurrency);
+  const balances = calculateBalances(expenses, members, baseCurrency, rates);
   const simplifiedDebts = calculateSimplifiedDebts(balances);
   const fullDebts = calculateFullDebts(balances);
   const debts = view === 'simplified' ? simplifiedDebts : fullDebts;
@@ -24,7 +24,7 @@ export default function Settlement({ expenses, members, baseCurrency }) {
   const getMemberIndex = (id) => members.findIndex((m) => m.id === id);
 
   const totalSpent = expenses.reduce((sum, e) => {
-    return sum + convertToBase(e.amount, e.currency, baseCurrency);
+    return sum + convertToBase(e.amount, e.currency, baseCurrency, rates);
   }, 0);
 
   return (

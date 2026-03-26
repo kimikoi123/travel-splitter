@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Plus, Receipt, Scale, Users as UsersIcon, Settings } from 'lucide-react';
+import { Plus, Receipt, Scale, Users as UsersIcon, RefreshCw, Wifi, WifiOff } from 'lucide-react';
 import MemberManager from './MemberManager';
 import ExpenseForm from './ExpenseForm';
 import ExpenseList from './ExpenseList';
 import Settlement from './Settlement';
-import { CURRENCIES } from '../utils/currencies';
+import { CURRENCIES, convertToBase } from '../utils/currencies';
 
 const TABS = [
   { id: 'expenses', label: 'Expenses', icon: Receipt },
@@ -14,6 +14,7 @@ const TABS = [
 
 export default function TripDashboard({
   trip,
+  exchangeRates,
   onAddMember,
   onRemoveMember,
   onAddExpense,
@@ -44,15 +45,35 @@ export default function TripDashboard({
           <p className="text-lg font-bold text-accent">
             {CURRENCIES[trip.baseCurrency]?.symbol}
             {trip.expenses
-              .reduce((sum, e) => {
-                const fromRate = CURRENCIES[e.currency]?.rate || 1;
-                const toRate = CURRENCIES[trip.baseCurrency]?.rate || 1;
-                return sum + (e.amount / fromRate) * toRate;
-              }, 0)
+              .reduce((sum, e) => convertToBase(e.amount, e.currency, trip.baseCurrency, exchangeRates.rates) + sum, 0)
               .toFixed(2)}
           </p>
           <p className="text-[10px] text-text-secondary uppercase tracking-wide">Total ({trip.baseCurrency})</p>
         </div>
+      </div>
+
+      {/* Exchange Rate Status */}
+      <div className="flex items-center justify-center gap-1.5 mb-4">
+        {exchangeRates.source === 'fallback' ? (
+          <WifiOff size={10} className="text-text-secondary" />
+        ) : (
+          <Wifi size={10} className="text-success" />
+        )}
+        <span className="text-[10px] text-text-secondary">
+          {exchangeRates.source === 'api' && 'Live rates'}
+          {exchangeRates.source === 'cache' && 'Cached rates'}
+          {exchangeRates.source === 'fallback' && 'Offline rates'}
+          {exchangeRates.lastUpdated && ` \u00b7 ${new Date(exchangeRates.lastUpdated).toLocaleTimeString()}`}
+        </span>
+        {exchangeRates.source !== 'api' && (
+          <button
+            onClick={exchangeRates.refresh}
+            className="text-text-secondary hover:text-text-primary transition-colors"
+            title="Refresh rates"
+          >
+            <RefreshCw size={10} className={exchangeRates.status === 'loading' ? 'animate-spin' : ''} />
+          </button>
+        )}
       </div>
 
       {/* Tabs */}
@@ -125,6 +146,7 @@ export default function TripDashboard({
           expenses={trip.expenses}
           members={trip.members}
           baseCurrency={trip.baseCurrency}
+          rates={exchangeRates.rates}
         />
       )}
 
