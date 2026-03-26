@@ -1,4 +1,6 @@
-export const CURRENCIES = {
+import type { CurrencyConfig, ExchangeRates } from '../types';
+
+export const CURRENCIES: Record<string, CurrencyConfig> = {
   USD: { symbol: '$', name: 'US Dollar', rate: 1 },
   EUR: { symbol: '€', name: 'Euro', rate: 0.92 },
   GBP: { symbol: '£', name: 'British Pound', rate: 0.79 },
@@ -16,13 +18,13 @@ export const CURRENCIES = {
   MXN: { symbol: 'MX$', name: 'Mexican Peso', rate: 17.15 },
 };
 
-export function convertToBase(amount, fromCurrency, baseCurrency, rates) {
-  const fromRate = rates ? (rates[fromCurrency] ?? 1) : (CURRENCIES[fromCurrency]?.rate || 1);
-  const toRate = rates ? (rates[baseCurrency] ?? 1) : (CURRENCIES[baseCurrency]?.rate || 1);
+export function convertToBase(amount: number, fromCurrency: string, baseCurrency: string, rates: ExchangeRates | null): number {
+  const fromRate = rates ? (rates[fromCurrency] ?? 1) : (CURRENCIES[fromCurrency]?.rate ?? 1);
+  const toRate = rates ? (rates[baseCurrency] ?? 1) : (CURRENCIES[baseCurrency]?.rate ?? 1);
   return (amount / fromRate) * toRate;
 }
 
-export function formatCurrency(amount, currencyCode) {
+export function formatCurrency(amount: number, currencyCode: string): string {
   const currency = CURRENCIES[currencyCode];
   if (!currency) return `${amount.toFixed(2)}`;
 

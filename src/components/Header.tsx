@@ -1,17 +1,23 @@
-import { ArrowLeft, Download, Upload, PlaneTakeoff, Smartphone } from 'lucide-react';
+import { ArrowLeft, Download, Upload, PlaneTakeoff } from 'lucide-react';
 import { useRef } from 'react';
-import { usePWAInstall } from '../hooks/usePWAInstall';
+import type { Trip } from '../types';
 
-export default function Header({ activeTrip, onBack, onExport, onImport }) {
-  const fileRef = useRef();
-  const { canInstall, installApp } = usePWAInstall();
+interface HeaderProps {
+  activeTrip: Trip | null;
+  onBack: () => void;
+  onExport: () => void;
+  onImport: (json: string) => boolean;
+}
 
-  const handleImport = (e) => {
-    const file = e.target.files[0];
+export default function Header({ activeTrip, onBack, onExport, onImport }: HeaderProps) {
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
-      const success = onImport(ev.target.result);
+      const success = onImport(ev.target?.result as string);
       if (!success) alert('Invalid backup file');
     };
     reader.readAsText(file);
@@ -44,15 +50,6 @@ export default function Header({ activeTrip, onBack, onExport, onImport }) {
           </div>
         </div>
         <div className="flex items-center gap-1">
-          {canInstall && (
-            <button
-              onClick={installApp}
-              className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-surface-light transition-colors text-primary hover:text-primary-light"
-              title="Install app"
-            >
-              <Smartphone size={18} />
-            </button>
-          )}
           <button
             onClick={onExport}
             className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-surface-light transition-colors text-text-secondary hover:text-text-primary"

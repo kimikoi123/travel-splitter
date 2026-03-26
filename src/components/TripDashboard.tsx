@@ -1,12 +1,38 @@
 import { useState } from 'react';
 import { Plus, Receipt, Scale, Users as UsersIcon, RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import MemberManager from './MemberManager';
 import ExpenseForm from './ExpenseForm';
 import ExpenseList from './ExpenseList';
 import Settlement from './Settlement';
 import { CURRENCIES, convertToBase } from '../utils/currencies';
+import type { Trip, Member, Expense, ExchangeRates, RateSource } from '../types';
 
-const TABS = [
+interface ExchangeRateState {
+  rates: ExchangeRates;
+  status: 'loading' | 'ready' | 'error';
+  lastUpdated: number | null;
+  source: RateSource;
+  refresh: () => Promise<void>;
+}
+
+interface TripDashboardProps {
+  trip: Trip;
+  exchangeRates: ExchangeRateState;
+  onAddMember: (name: string) => Member | undefined;
+  onRemoveMember: (id: string) => boolean | undefined;
+  onAddExpense: (expense: Omit<Expense, 'id' | 'createdAt'>) => Expense | undefined;
+  onRemoveExpense: (id: string) => void;
+  onUpdateTrip: (updates: Partial<Trip>) => void;
+}
+
+interface Tab {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+}
+
+const TABS: Tab[] = [
   { id: 'expenses', label: 'Expenses', icon: Receipt },
   { id: 'settle', label: 'Settle Up', icon: Scale },
   { id: 'members', label: 'Members', icon: UsersIcon },
@@ -19,12 +45,11 @@ export default function TripDashboard({
   onRemoveMember,
   onAddExpense,
   onRemoveExpense,
-  onUpdateTrip,
-}) {
+}: TripDashboardProps) {
   const [activeTab, setActiveTab] = useState('expenses');
   const [showExpenseForm, setShowExpenseForm] = useState(false);
 
-  const handleAddExpense = (expense) => {
+  const handleAddExpense = (expense: Omit<Expense, 'id' | 'createdAt'>) => {
     onAddExpense(expense);
     setShowExpenseForm(false);
   };

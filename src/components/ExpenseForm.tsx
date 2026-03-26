@@ -1,15 +1,23 @@
 import { useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { CURRENCIES } from '../utils/currencies';
+import type { Member, Expense, SplitType } from '../types';
 
-export default function ExpenseForm({ members, baseCurrency, onAdd, onCancel }) {
+interface ExpenseFormProps {
+  members: Member[];
+  baseCurrency: string;
+  onAdd: (expense: Omit<Expense, 'id' | 'createdAt'>) => void;
+  onCancel: () => void;
+}
+
+export default function ExpenseForm({ members, baseCurrency, onAdd, onCancel }: ExpenseFormProps) {
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState(baseCurrency);
-  const [paidBy, setPaidBy] = useState(members[0]?.id || '');
-  const [splitType, setSplitType] = useState('equal');
+  const [paidBy, setPaidBy] = useState(members[0]?.id ?? '');
+  const [splitType, setSplitType] = useState<SplitType>('equal');
   const [participants, setParticipants] = useState(members.map((m) => m.id));
-  const [customAmounts, setCustomAmounts] = useState({});
+  const [customAmounts, setCustomAmounts] = useState<Record<string, number>>({});
   const [category, setCategory] = useState('general');
 
   const CATEGORIES = [
@@ -21,17 +29,17 @@ export default function ExpenseForm({ members, baseCurrency, onAdd, onCancel }) 
     { value: 'general', label: 'General' },
   ];
 
-  const toggleParticipant = (id) => {
+  const toggleParticipant = (id: string) => {
     setParticipants((prev) =>
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
     );
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!description.trim() || !amount || !paidBy || participants.length === 0) return;
 
-    const expense = {
+    const expense: Omit<Expense, 'id' | 'createdAt'> = {
       description: description.trim(),
       amount: parseFloat(amount),
       currency,
@@ -44,7 +52,7 @@ export default function ExpenseForm({ members, baseCurrency, onAdd, onCancel }) 
 
     // Validate custom amounts
     if (splitType === 'custom') {
-      const total = Object.values(customAmounts).reduce((s, v) => s + (parseFloat(v) || 0), 0);
+      const total = Object.values(customAmounts).reduce((s, v) => s + (v || 0), 0);
       if (Math.abs(total - parseFloat(amount)) > 0.01) {
         alert(`Custom amounts (${total.toFixed(2)}) must equal the total (${parseFloat(amount).toFixed(2)})`);
         return;
@@ -138,7 +146,7 @@ export default function ExpenseForm({ members, baseCurrency, onAdd, onCancel }) 
       <div>
         <label className="text-xs font-medium text-text-secondary mb-2 block">Split type</label>
         <div className="flex gap-2">
-          {['equal', 'custom'].map((type) => (
+          {(['equal', 'custom'] as const).map((type) => (
             <button
               key={type}
               type="button"
@@ -174,7 +182,7 @@ export default function ExpenseForm({ members, baseCurrency, onAdd, onCancel }) 
               >
                 {m.name}
                 {participants.includes(m.id) && amount
-                  ? ` (${CURRENCIES[currency]?.symbol || ''}${(parseFloat(amount) / participants.length).toFixed(2)})`
+                  ? ` (${CURRENCIES[currency]?.symbol ?? ''}${(parseFloat(amount) / participants.length).toFixed(2)})`
                   : ''}
               </button>
             ))}
@@ -189,7 +197,7 @@ export default function ExpenseForm({ members, baseCurrency, onAdd, onCancel }) 
                   step="0.01"
                   min="0"
                   placeholder="0.00"
-                  value={customAmounts[m.id] || ''}
+                  value={customAmounts[m.id] ?? ''}
                   onChange={(e) =>
                     setCustomAmounts((prev) => ({
                       ...prev,

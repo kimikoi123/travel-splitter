@@ -16,7 +16,6 @@ function App() {
     removeMember,
     addExpense,
     removeExpense,
-    editExpense,
     exportData,
     importData,
   } = useTrip();

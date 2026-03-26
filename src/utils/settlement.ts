@@ -1,11 +1,12 @@
+import type { Expense, Member, ExchangeRates, Balances, Debt } from '../types';
 import { convertToBase } from './currencies';
 
 /**
  * Calculate net balances for all members.
  * Positive = owed money, Negative = owes money.
  */
-export function calculateBalances(expenses, members, baseCurrency, rates) {
-  const balances = {};
+export function calculateBalances(expenses: Expense[], members: Member[], baseCurrency: string, rates: ExchangeRates): Balances {
+  const balances: Balances = {};
   members.forEach((m) => (balances[m.id] = 0));
 
   expenses.forEach((expense) => {
@@ -27,9 +28,9 @@ export function calculateBalances(expenses, members, baseCurrency, rates) {
         }
       });
     } else if (expense.splitType === 'custom') {
-      const totalCustom = Object.values(expense.customAmounts || {}).reduce((s, v) => s + v, 0);
+      const totalCustom = Object.values(expense.customAmounts ?? {}).reduce((s, v) => s + v, 0);
       if (totalCustom > 0) {
-        Object.entries(expense.customAmounts || {}).forEach(([pid, customAmt]) => {
+        Object.entries(expense.customAmounts ?? {}).forEach(([pid, customAmt]) => {
           const share = (customAmt / totalCustom) * amountInBase;
           if (balances[pid] !== undefined) {
             balances[pid] -= share;
@@ -42,13 +43,18 @@ export function calculateBalances(expenses, members, baseCurrency, rates) {
   return balances;
 }
 
+interface BalanceEntry {
+  id: string;
+  amount: number;
+}
+
 /**
  * Full breakdown: every individual debt between pairs.
  */
-export function calculateFullDebts(balances) {
-  const debts = [];
-  const debtors = [];
-  const creditors = [];
+export function calculateFullDebts(balances: Balances): Debt[] {
+  const debts: Debt[] = [];
+  const debtors: BalanceEntry[] = [];
+  const creditors: BalanceEntry[] = [];
 
   Object.entries(balances).forEach(([id, balance]) => {
     if (balance < -0.01) {
@@ -85,10 +91,10 @@ export function calculateFullDebts(balances) {
 /**
  * Simplified debts: minimize number of transactions using greedy algorithm.
  */
-export function calculateSimplifiedDebts(balances) {
-  const debts = [];
-  const debtors = [];
-  const creditors = [];
+export function calculateSimplifiedDebts(balances: Balances): Debt[] {
+  const debts: Debt[] = [];
+  const debtors: BalanceEntry[] = [];
+  const creditors: BalanceEntry[] = [];
 
   Object.entries(balances).forEach(([id, balance]) => {
     if (balance < -0.01) {
@@ -106,20 +112,20 @@ export function calculateSimplifiedDebts(balances) {
   let j = 0;
 
   while (i < debtors.length && j < creditors.length) {
-    const amount = Math.min(debtors[i].amount, creditors[j].amount);
+    const amount = Math.min(debtors[i]!.amount, creditors[j]!.amount);
     if (amount > 0.01) {
       debts.push({
-        from: debtors[i].id,
-        to: creditors[j].id,
+        from: debtors[i]!.id,
+        to: creditors[j]!.id,
         amount,
       });
     }
 
-    debtors[i].amount -= amount;
-    creditors[j].amount -= amount;
+    debtors[i]!.amount -= amount;
+    creditors[j]!.amount -= amount;
 
-    if (debtors[i].amount < 0.01) i++;
-    if (creditors[j].amount < 0.01) j++;
+    if (debtors[i]!.amount < 0.01) i++;
+    if (creditors[j]!.amount < 0.01) j++;
   }
 
   return debts;

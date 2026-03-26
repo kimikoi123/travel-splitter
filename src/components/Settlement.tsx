@@ -3,9 +3,17 @@ import { ArrowRight, Zap, List, TrendingUp, TrendingDown } from 'lucide-react';
 import { calculateBalances, calculateSimplifiedDebts, calculateFullDebts } from '../utils/settlement';
 import { formatCurrency, convertToBase } from '../utils/currencies';
 import { getInitials, getAvatarColor } from '../utils/helpers';
+import type { Expense, Member, ExchangeRates } from '../types';
 
-export default function Settlement({ expenses, members, baseCurrency, rates }) {
-  const [view, setView] = useState('simplified');
+interface SettlementProps {
+  expenses: Expense[];
+  members: Member[];
+  baseCurrency: string;
+  rates: ExchangeRates;
+}
+
+export default function Settlement({ expenses, members, baseCurrency, rates }: SettlementProps) {
+  const [view, setView] = useState<'simplified' | 'full'>('simplified');
 
   if (members.length === 0 || expenses.length === 0) {
     return (
@@ -20,8 +28,8 @@ export default function Settlement({ expenses, members, baseCurrency, rates }) {
   const fullDebts = calculateFullDebts(balances);
   const debts = view === 'simplified' ? simplifiedDebts : fullDebts;
 
-  const getMember = (id) => members.find((m) => m.id === id);
-  const getMemberIndex = (id) => members.findIndex((m) => m.id === id);
+  const getMember = (id: string) => members.find((m) => m.id === id);
+  const getMemberIndex = (id: string) => members.findIndex((m) => m.id === id);
 
   const totalSpent = expenses.reduce((sum, e) => {
     return sum + convertToBase(e.amount, e.currency, baseCurrency, rates);
@@ -41,7 +49,7 @@ export default function Settlement({ expenses, members, baseCurrency, rates }) {
         </div>
         <div className="space-y-2">
           {members.map((m, i) => {
-            const balance = balances[m.id] || 0;
+            const balance = balances[m.id] ?? 0;
             const isPositive = balance > 0.01;
             const isNegative = balance < -0.01;
 
