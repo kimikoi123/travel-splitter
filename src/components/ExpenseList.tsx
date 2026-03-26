@@ -35,16 +35,37 @@ interface ExpenseListProps {
   expenses: Expense[];
   members: Member[];
   onRemove: (id: string) => void;
+  showToast: (message: string, onCommit: () => void) => string;
 }
 
-export default function ExpenseList({ expenses, members, onRemove }: ExpenseListProps) {
+export default function ExpenseList({ expenses, members, onRemove, showToast }: ExpenseListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [pendingDeletes, setPendingDeletes] = useState<Set<string>>(new Set());
 
   const getMemberName = (id: string) => members.find((m) => m.id === id)?.name ?? 'Unknown';
 
+  const handleRemove = (expense: Expense) => {
+    setPendingDeletes((prev) => new Set(prev).add(expense.id));
+
+    showToast(`"${expense.description}" deleted`, () => {
+      onRemove(expense.id);
+    });
+
+    // Clean up pending state after toast duration (whether committed or undone)
+    setTimeout(() => {
+      setPendingDeletes((prev) => {
+        const next = new Set(prev);
+        next.delete(expense.id);
+        return next;
+      });
+    }, 5500);
+  };
+
+  const visibleExpenses = expenses.filter((e) => !pendingDeletes.has(e.id));
+
   const filteredExpenses = useMemo(() => {
-    let result = expenses;
+    let result = visibleExpenses;
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       result = result.filter((e) => e.description.toLowerCase().includes(query));
@@ -53,7 +74,7 @@ export default function ExpenseList({ expenses, members, onRemove }: ExpenseList
       result = result.filter((e) => e.category === selectedCategory);
     }
     return result;
-  }, [expenses, searchQuery, selectedCategory]);
+  }, [visibleExpenses, searchQuery, selectedCategory]);
 
   const hasActiveFilters = searchQuery || selectedCategory;
 
@@ -137,7 +158,7 @@ export default function ExpenseList({ expenses, members, onRemove }: ExpenseList
         <div className="space-y-2">
           {hasActiveFilters && (
             <p className="text-xs text-text-secondary px-1">
-              {filteredExpenses.length} of {expenses.length} expenses
+              {filteredExpenses.length} of {visibleExpenses.length} expenses
             </p>
           )}
           {[...filteredExpenses].reverse().map((expense) => {
@@ -173,7 +194,7 @@ export default function ExpenseList({ expenses, members, onRemove }: ExpenseList
                       {expense.participants.length} people
                     </p>
                     <button
-                      onClick={() => onRemove(expense.id)}
+                      onClick={() => handleRemove(expense)}
                       className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded text-text-secondary hover:text-danger transition-colors sm:opacity-0 sm:group-hover:opacity-100 shrink-0"
                     >
                       <Trash2 size={14} />
