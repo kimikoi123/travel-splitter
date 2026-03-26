@@ -1,4 +1,5 @@
-import { Trash2, Utensils, Car, Home, Ticket, ShoppingBag, ReceiptText, Calendar } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Trash2, Utensils, Car, Home, Ticket, ShoppingBag, ReceiptText, Calendar, Search, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { formatCurrency } from '../utils/currencies';
 import type { Expense, Member } from '../types';
@@ -21,6 +22,15 @@ const CATEGORY_COLORS: Record<string, string> = {
   general: 'text-gray-400 bg-gray-400/15',
 };
 
+const CATEGORY_LABELS: Record<string, string> = {
+  food: 'Food',
+  transport: 'Transport',
+  accommodation: 'Accommodation',
+  activities: 'Activities',
+  shopping: 'Shopping',
+  general: 'General',
+};
+
 interface ExpenseListProps {
   expenses: Expense[];
   members: Member[];
@@ -28,7 +38,24 @@ interface ExpenseListProps {
 }
 
 export default function ExpenseList({ expenses, members, onRemove }: ExpenseListProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
   const getMemberName = (id: string) => members.find((m) => m.id === id)?.name ?? 'Unknown';
+
+  const filteredExpenses = useMemo(() => {
+    let result = expenses;
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter((e) => e.description.toLowerCase().includes(query));
+    }
+    if (selectedCategory) {
+      result = result.filter((e) => e.category === selectedCategory);
+    }
+    return result;
+  }, [expenses, searchQuery, selectedCategory]);
+
+  const hasActiveFilters = searchQuery || selectedCategory;
 
   if (expenses.length === 0) {
     return (
@@ -40,50 +67,124 @@ export default function ExpenseList({ expenses, members, onRemove }: ExpenseList
   }
 
   return (
-    <div className="space-y-2">
-      {[...expenses].reverse().map((expense) => {
-        const Icon = CATEGORY_ICONS[expense.category] ?? ReceiptText;
-        const colorClass = CATEGORY_COLORS[expense.category] ?? CATEGORY_COLORS['general']!;
+    <div className="space-y-3">
+      {/* Search & Filter Bar */}
+      <div className="space-y-2">
+        <div className="relative">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search expenses..."
+            className="w-full pl-8 pr-8 py-2 bg-surface border border-border rounded-xl text-sm text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-primary/50 transition-colors"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-text-secondary hover:text-text-primary transition-colors"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
 
-        return (
-          <div
-            key={expense.id}
-            className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 group hover:border-border/80 transition-colors"
+        <div className="flex gap-1.5 overflow-x-auto pb-1 -mb-1 scrollbar-hide">
+          <button
+            onClick={() => setSelectedCategory(null)}
+            className={`shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
+              !selectedCategory
+                ? 'bg-primary text-white'
+                : 'bg-surface border border-border text-text-secondary hover:text-text-primary'
+            }`}
           >
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${colorClass}`}>
-              <Icon size={18} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-text-primary truncate">
-                  {expense.description}
-                </p>
-                <p className="text-sm font-semibold text-text-primary shrink-0 ml-2">
-                  {formatCurrency(expense.amount, expense.currency)}
-                </p>
+            All
+          </button>
+          {Object.entries(CATEGORY_LABELS).map(([key, label]) => {
+            const Icon = CATEGORY_ICONS[key]!;
+            const isActive = selectedCategory === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setSelectedCategory(isActive ? null : key)}
+                className={`shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors flex items-center gap-1 ${
+                  isActive
+                    ? CATEGORY_COLORS[key]!
+                    : 'bg-surface border border-border text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                <Icon size={11} />
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Expense Items */}
+      {filteredExpenses.length === 0 ? (
+        <div className="text-center py-6">
+          <Search size={24} className="text-text-secondary mx-auto mb-2" />
+          <p className="text-text-secondary text-sm">No matching expenses</p>
+          <button
+            onClick={() => { setSearchQuery(''); setSelectedCategory(null); }}
+            className="mt-2 text-xs text-primary hover:text-primary-light transition-colors"
+          >
+            Clear filters
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {hasActiveFilters && (
+            <p className="text-xs text-text-secondary px-1">
+              {filteredExpenses.length} of {expenses.length} expenses
+            </p>
+          )}
+          {[...filteredExpenses].reverse().map((expense) => {
+            const Icon = CATEGORY_ICONS[expense.category] ?? ReceiptText;
+            const colorClass = CATEGORY_COLORS[expense.category] ?? CATEGORY_COLORS['general']!;
+
+            return (
+              <div
+                key={expense.id}
+                className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 group hover:border-border/80 transition-colors"
+              >
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${colorClass}`}>
+                  <Icon size={18} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-text-primary truncate">
+                      {expense.description}
+                    </p>
+                    <p className="text-sm font-semibold text-text-primary shrink-0 ml-2">
+                      {formatCurrency(expense.amount, expense.currency)}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between mt-0.5">
+                    <p className="text-xs text-text-secondary truncate">
+                      <Calendar size={11} className="inline -mt-0.5 mr-0.5" />
+                      {new Date(expense.date || expense.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                      {' · '}
+                      Paid by <span className="text-primary-light">{getMemberName(expense.paidBy)}</span>
+                      {' · '}
+                      {expense.splitType === 'equal' ? 'Equal' : 'Custom'} split
+                      {' · '}
+                      {expense.participants.length} people
+                    </p>
+                    <button
+                      onClick={() => onRemove(expense.id)}
+                      className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded text-text-secondary hover:text-danger transition-colors sm:opacity-0 sm:group-hover:opacity-100 shrink-0"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center justify-between mt-0.5">
-                <p className="text-xs text-text-secondary truncate">
-                  <Calendar size={11} className="inline -mt-0.5 mr-0.5" />
-                  {new Date(expense.date || expense.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                  {' · '}
-                  Paid by <span className="text-primary-light">{getMemberName(expense.paidBy)}</span>
-                  {' · '}
-                  {expense.splitType === 'equal' ? 'Equal' : 'Custom'} split
-                  {' · '}
-                  {expense.participants.length} people
-                </p>
-                <button
-                  onClick={() => onRemove(expense.id)}
-                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded text-text-secondary hover:text-danger transition-colors sm:opacity-0 sm:group-hover:opacity-100 shrink-0"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })}
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
