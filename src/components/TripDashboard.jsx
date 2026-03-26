@@ -30,7 +30,7 @@ export default function TripDashboard({
   };
 
   return (
-    <div className="max-w-2xl mx-auto w-full p-4 sm:p-6">
+    <div className="max-w-2xl mx-auto w-full p-4 sm:p-6" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)' }}>
       {/* Quick Stats */}
       <div className="grid grid-cols-3 gap-3 mb-4">
         <div className="bg-surface rounded-xl border border-border p-3 text-center">
@@ -84,7 +84,7 @@ export default function TripDashboard({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 activeTab === tab.id
                   ? 'bg-primary text-white'
                   : 'text-text-secondary hover:text-text-primary'

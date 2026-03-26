@@ -17,7 +17,7 @@ export default function TripList({ trips, onSelect, onCreate, onDelete }) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto w-full p-4 sm:p-6">
+    <div className="max-w-2xl mx-auto w-full p-4 sm:p-6" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)' }}>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-semibold text-text-primary">Your Trips</h2>
         <button
@@ -102,7 +102,7 @@ export default function TripList({ trips, onSelect, onCreate, onDelete }) {
                       e.stopPropagation();
                       if (confirm(`Delete "${trip.name}"?`)) onDelete(trip.id);
                     }}
-                    className="p-2 rounded-lg text-text-secondary hover:text-danger hover:bg-danger/10 transition-colors opacity-0 group-hover:opacity-100"
+                    className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-text-secondary hover:text-danger hover:bg-danger/10 transition-colors sm:opacity-0 sm:group-hover:opacity-100"
                   >
                     <Trash2 size={16} />
                   </button>

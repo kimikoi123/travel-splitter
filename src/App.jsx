@@ -24,7 +24,7 @@ function App() {
   const exchangeRates = useExchangeRates();
 
   return (
-    <div className="min-h-screen bg-[#13131f]">
+    <div className="min-h-screen bg-[#13131f]" style={{ paddingLeft: 'env(safe-area-inset-left, 0px)', paddingRight: 'env(safe-area-inset-right, 0px)' }}>
       <Header
         activeTrip={activeTrip}
         onBack={() => setActiveTrip(null)}

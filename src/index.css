@@ -15,15 +15,30 @@
   --color-border: #3f3f5f;
 }
 
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   margin: 0;
   background-color: #13131f;
   color: var(--color-text-primary);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overscroll-behavior-y: contain;
 }
 
 * {
   box-sizing: border-box;
+}
+
+button, a, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+input, select, textarea {
+  font-family: inherit;
+  font-size: 16px;
 }
 
 ::-webkit-scrollbar {
@@ -35,8 +50,4 @@ body {
 ::-webkit-scrollbar-thumb {
   background: #3f3f5f;
   border-radius: 3px;
-}
-
-input, select, textarea {
-  font-family: inherit;
 }

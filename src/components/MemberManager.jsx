@@ -21,9 +21,9 @@ export default function MemberManager({ members, onAdd, onRemove }) {
         </h3>
         <button
           onClick={() => setShowInput(!showInput)}
-          className="p-1.5 rounded-lg hover:bg-surface-light transition-colors text-primary"
+          className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-surface-light transition-colors text-primary"
         >
-          <UserPlus size={16} />
+          <UserPlus size={18} />
         </button>
       </div>
 
@@ -67,9 +67,9 @@ export default function MemberManager({ members, onAdd, onRemove }) {
                   const removed = onRemove(m.id);
                   if (removed === false) alert(`Can't remove ${m.name} — they have expenses.`);
                 }}
-                className="p-0.5 rounded-full text-text-secondary hover:text-danger transition-colors opacity-0 group-hover:opacity-100"
+                className="p-1.5 -mr-1 rounded-full text-text-secondary hover:text-danger transition-colors sm:opacity-0 sm:group-hover:opacity-100"
               >
-                <X size={12} />
+                <X size={14} />
               </button>
             </div>
           ))}

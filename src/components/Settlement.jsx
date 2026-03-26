@@ -81,7 +81,7 @@ export default function Settlement({ expenses, members, baseCurrency, rates }) {
           <div className="flex rounded-lg overflow-hidden border border-border">
             <button
               onClick={() => setView('simplified')}
-              className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`flex items-center gap-1 px-3 py-2 text-xs font-medium transition-colors ${
                 view === 'simplified'
                   ? 'bg-primary text-white'
                   : 'bg-surface-light text-text-secondary hover:text-text-primary'
@@ -92,7 +92,7 @@ export default function Settlement({ expenses, members, baseCurrency, rates }) {
             </button>
             <button
               onClick={() => setView('full')}
-              className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`flex items-center gap-1 px-3 py-2 text-xs font-medium transition-colors ${
                 view === 'full'
                   ? 'bg-primary text-white'
                   : 'bg-surface-light text-text-secondary hover:text-text-primary'

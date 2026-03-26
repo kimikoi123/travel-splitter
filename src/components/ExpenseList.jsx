@@ -64,7 +64,7 @@ export default function ExpenseList({ expenses, members, onRemove }) {
                 </p>
                 <button
                   onClick={() => onRemove(expense.id)}
-                  className="p-1 rounded text-text-secondary hover:text-danger transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded text-text-secondary hover:text-danger transition-colors sm:opacity-0 sm:group-hover:opacity-100 shrink-0"
                 >
                   <Trash2 size={14} />
                 </button>
