@@ -196,8 +196,8 @@ export default function ExpenseList({ expenses, members, onRemove, onEdit, showT
                       </span>
                       <span className="shrink-0">·</span>
                       <span className="shrink-0">Paid by <span className="text-primary-light">{getMemberName(expense.paidBy)}</span></span>
-                      <span className="shrink-0">·</span>
-                      <span className="shrink-0">{expense.splitType === 'equal' ? 'Equal' : 'Custom'} · {expense.participants.length} people</span>
+                      <span className="hidden sm:inline shrink-0">·</span>
+                      <span className="hidden sm:inline shrink-0">{expense.splitType === 'equal' ? 'Equal' : 'Custom'} · {expense.participants.length} people</span>
                     </div>
                     <div className="flex items-center shrink-0 gap-0 sm:opacity-0 sm:group-hover:opacity-100">
                       <button

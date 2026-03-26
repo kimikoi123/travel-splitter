@@ -29,7 +29,7 @@ export default function Header({ activeTrip, onBack, onExport, onImport }: Heade
 
   return (
     <header className="glass sticky top-0 z-40 px-4 py-3 sm:px-6 shadow-[0_1px_0_0_rgba(63,63,95,0.5),0_4px_12px_-4px_rgba(0,0,0,0.3)]" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)' }}>
-      <div className="max-w-5xl mx-auto flex items-center justify-between">
+      <div className="max-w-2xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-3">
           {activeTrip ? (
             <button

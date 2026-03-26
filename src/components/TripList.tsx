@@ -74,7 +74,7 @@ export default function TripList({ trips, onSelect, onCreate, onDelete, showToas
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
               aria-label="Base currency"
-              className="flex-1 bg-surface-light border border-border rounded-lg px-3 py-2.5 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
+              className="flex-1 min-w-0 bg-surface-light border border-border rounded-lg px-3 py-2.5 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
             >
               {Object.entries(CURRENCIES).map(([code, c]) => (
                 <option key={code} value={code}>
@@ -84,7 +84,7 @@ export default function TripList({ trips, onSelect, onCreate, onDelete, showToas
             </select>
             <button
               type="submit"
-              className="px-5 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-lg transition-colors text-sm font-medium"
+              className="shrink-0 px-5 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-lg transition-colors text-sm font-medium"
             >
               Create
             </button>

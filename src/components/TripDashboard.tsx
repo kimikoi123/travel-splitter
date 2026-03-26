@@ -101,7 +101,7 @@ export default function TripDashboard({
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 mb-4">
         <div className="bg-surface rounded-xl border border-border p-3 text-center">
           <p className="text-lg font-bold text-text-primary">{trip.members.length}</p>
           <p className="text-[10px] text-text-secondary uppercase tracking-wide" data-heading>Members</p>
@@ -111,7 +111,7 @@ export default function TripDashboard({
           <p className="text-[10px] text-text-secondary uppercase tracking-wide" data-heading>Expenses</p>
         </div>
         <div className="col-span-2 sm:col-span-1 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl border border-primary/20 p-3 text-center">
-          <p className="text-base sm:text-lg font-bold text-accent" style={{ fontVariantNumeric: 'tabular-nums' }}>
+          <p className="text-base sm:text-lg font-bold text-accent truncate" style={{ fontVariantNumeric: 'tabular-nums' }}>
             {CURRENCIES[trip.baseCurrency]?.symbol}
             {trip.expenses
               .reduce((sum, e) => convertToBase(e.amount, e.currency, trip.baseCurrency, exchangeRates.rates) + sum, 0)
