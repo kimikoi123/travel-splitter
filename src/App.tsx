@@ -7,6 +7,7 @@ import TripList from './components/TripList';
 import TripDashboard from './components/TripDashboard';
 import ShareImportBanner from './components/ShareImportBanner';
 import ToastContainer from './components/Toast';
+import UpdatePrompt from './components/UpdatePrompt';
 import { getSharedTripFromUrl } from './utils/sharing';
 import type { Trip } from './types';
 
@@ -134,6 +135,7 @@ function App() {
         onUndo={undoToast}
         onDismiss={dismissToast}
       />
+      <UpdatePrompt />
     </div>
   );
 }
