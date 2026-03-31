@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateBalances, calculateSimplifiedDebts, calculateFullDebts } from './settlement';
+import { calculateBalances, calculateDirectDebts } from './settlement';
 import type { Member, Expense, Balances, Debt, SplitType } from '../types';
 
 function makeMember(id: string, name?: string): Member {
@@ -230,82 +230,130 @@ describe('calculateBalances', () => {
   });
 });
 
-describe('calculateSimplifiedDebts', () => {
-  it('two people: { A: 50, B: -50 } -> single debt B->A for 50', () => {
-    const debts = calculateSimplifiedDebts({ A: 50, B: -50 });
+describe('calculateDirectDebts', () => {
+  const findDebt = (debts: Debt[], from: string, to: string) =>
+    debts.find(d => d.from === from && d.to === to);
+
+  it('equal split, 2 members: Bob owes Alice 50', () => {
+    const members = [makeMember('Alice'), makeMember('Bob')];
+    const expenses = [
+      makeExpense({ amount: 100, paidBy: 'Alice', participants: ['Alice', 'Bob'] }),
+    ];
+    const debts = calculateDirectDebts(expenses, members, 'USD', { USD: 1 });
     expect(debts).toHaveLength(1);
-    expect(debts[0]!.from).toBe('B');
-    expect(debts[0]!.to).toBe('A');
-    expect(debts[0]!.amount).toBeCloseTo(50, 2);
+    expect(findDebt(debts, 'Bob', 'Alice')?.amount).toBeCloseTo(50, 2);
   });
 
-  it('three people, 1 creditor 2 debtors: { A: 100, B: -60, C: -40 }', () => {
-    const balances = { A: 100, B: -60, C: -40 };
-    const debts = calculateSimplifiedDebts(balances);
+  it('equal split, 3 members: Bob and Carol each owe Alice 100', () => {
+    const members = [makeMember('Alice'), makeMember('Bob'), makeMember('Carol')];
+    const expenses = [
+      makeExpense({ amount: 300, paidBy: 'Alice', participants: ['Alice', 'Bob', 'Carol'] }),
+    ];
+    const debts = calculateDirectDebts(expenses, members, 'USD', { USD: 1 });
     expect(debts).toHaveLength(2);
-    expectDebtsSettleBalances(debts, balances);
+    expect(findDebt(debts, 'Bob', 'Alice')?.amount).toBeCloseTo(100, 2);
+    expect(findDebt(debts, 'Carol', 'Alice')?.amount).toBeCloseTo(100, 2);
   });
 
-  it('three people, 2 creditors 1 debtor: { A: 60, B: 40, C: -100 }', () => {
-    const balances = { A: 60, B: 40, C: -100 };
-    const debts = calculateSimplifiedDebts(balances);
+  it('multiple payers with per-pair netting', () => {
+    const members = [makeMember('Alice'), makeMember('Bob'), makeMember('Carol')];
+    const expenses = [
+      makeExpense({ id: 'e1', amount: 300, paidBy: 'Alice', participants: ['Alice', 'Bob', 'Carol'] }),
+      makeExpense({ id: 'e2', amount: 150, paidBy: 'Bob', participants: ['Alice', 'Bob', 'Carol'] }),
+    ];
+    const debts = calculateDirectDebts(expenses, members, 'USD', { USD: 1 });
+    // Alice paid 300 (3-way): Bob owes Alice 100, Carol owes Alice 100
+    // Bob paid 150 (3-way): Alice owes Bob 50, Carol owes Bob 50
+    // Net Alice<->Bob: Bob owes Alice 100, Alice owes Bob 50 -> Bob owes Alice 50
+    expect(findDebt(debts, 'Bob', 'Alice')?.amount).toBeCloseTo(50, 2);
+    expect(findDebt(debts, 'Carol', 'Alice')?.amount).toBeCloseTo(100, 2);
+    expect(findDebt(debts, 'Carol', 'Bob')?.amount).toBeCloseTo(50, 2);
+    expect(debts).toHaveLength(3);
+  });
+
+  it('custom split: Alice pays 100, Bob:70 Alice:30', () => {
+    const members = [makeMember('Alice'), makeMember('Bob')];
+    const expenses = [
+      makeExpense({
+        amount: 100, paidBy: 'Alice', splitType: 'custom',
+        participants: ['Alice', 'Bob'], customAmounts: { Alice: 30, Bob: 70 },
+      }),
+    ];
+    const debts = calculateDirectDebts(expenses, members, 'USD', { USD: 1 });
+    expect(debts).toHaveLength(1);
+    expect(findDebt(debts, 'Bob', 'Alice')?.amount).toBeCloseTo(70, 2);
+  });
+
+  it('advance payment: Bob pays full share in advance', () => {
+    const members = [makeMember('Alice'), makeMember('Bob'), makeMember('Carol')];
+    const expenses = [
+      makeExpense({
+        amount: 300, paidBy: 'Alice', participants: ['Alice', 'Bob', 'Carol'],
+        advancePayments: { Bob: 100 },
+      }),
+    ];
+    const debts = calculateDirectDebts(expenses, members, 'USD', { USD: 1 });
+    // Bob's share is 100, advance is 100 -> Bob owes Alice 0
+    // Carol owes Alice 100
+    expect(debts).toHaveLength(1);
+    expect(findDebt(debts, 'Carol', 'Alice')?.amount).toBeCloseTo(100, 2);
+    expect(findDebt(debts, 'Bob', 'Alice')).toBeUndefined();
+  });
+
+  it('advance payment: partial advance', () => {
+    const members = [makeMember('Alice'), makeMember('Bob')];
+    const expenses = [
+      makeExpense({
+        amount: 100, paidBy: 'Alice', participants: ['Alice', 'Bob'],
+        advancePayments: { Bob: 30 },
+      }),
+    ];
+    const debts = calculateDirectDebts(expenses, members, 'USD', { USD: 1 });
+    // Bob share 50, advance 30 -> Bob owes Alice 20
+    expect(debts).toHaveLength(1);
+    expect(findDebt(debts, 'Bob', 'Alice')?.amount).toBeCloseTo(20, 2);
+  });
+
+  it('multi-currency: Alice pays 100 EUR, base USD', () => {
+    const members = [makeMember('Alice'), makeMember('Bob')];
+    const rates = { EUR: 0.92, USD: 1 };
+    const expenses = [
+      makeExpense({ amount: 100, currency: 'EUR', paidBy: 'Alice', participants: ['Alice', 'Bob'] }),
+    ];
+    const debts = calculateDirectDebts(expenses, members, 'USD', rates);
+    expect(debts).toHaveLength(1);
+    // 100 EUR = 100/0.92 ~= 108.70 USD. Bob owes ~54.35
+    expect(findDebt(debts, 'Bob', 'Alice')?.amount).toBeCloseTo(54.35, 0);
+  });
+
+  it('settlement expense cancels debt', () => {
+    const members = [makeMember('Alice'), makeMember('Bob')];
+    const expenses = [
+      makeExpense({ id: 'e1', amount: 100, paidBy: 'Alice', participants: ['Alice', 'Bob'] }),
+      makeExpense({
+        id: 'e2', amount: 50, paidBy: 'Bob', splitType: 'custom',
+        participants: ['Alice'], customAmounts: { Alice: 50 }, isSettlement: true,
+      }),
+    ];
+    const debts = calculateDirectDebts(expenses, members, 'USD', { USD: 1 });
+    // Bob owes Alice 50, settlement: Alice owes Bob 50 -> net 0
+    expect(debts).toHaveLength(0);
+  });
+
+  it('empty expenses: no debts', () => {
+    const members = [makeMember('Alice'), makeMember('Bob')];
+    const debts = calculateDirectDebts([], members, 'USD', { USD: 1 });
+    expect(debts).toHaveLength(0);
+  });
+
+  it('payer not a participant: full amount owed', () => {
+    const members = [makeMember('Alice'), makeMember('Bob'), makeMember('Carol')];
+    const expenses = [
+      makeExpense({ amount: 100, paidBy: 'Alice', participants: ['Bob', 'Carol'] }),
+    ];
+    const debts = calculateDirectDebts(expenses, members, 'USD', { USD: 1 });
     expect(debts).toHaveLength(2);
-    expectDebtsSettleBalances(debts, balances);
-  });
-
-  it('already balanced: { A: 0, B: 0 } -> empty array', () => {
-    const debts = calculateSimplifiedDebts({ A: 0, B: 0 });
-    expect(debts).toHaveLength(0);
-  });
-
-  it('within threshold: { A: 0.005, B: -0.005 } -> empty array', () => {
-    const debts = calculateSimplifiedDebts({ A: 0.005, B: -0.005 });
-    expect(debts).toHaveLength(0);
-  });
-
-  it('five people: verify settles and length <= 4', () => {
-    const balances = { A: 100, B: 50, C: -70, D: -50, E: -30 };
-    const debts = calculateSimplifiedDebts(balances);
-    expect(debts.length).toBeLessThanOrEqual(4);
-    expectDebtsSettleBalances(debts, balances);
-  });
-
-  it('floating point edge: { A: 33.33, B: 33.34, C: -66.67 }', () => {
-    const balances = { A: 33.33, B: 33.34, C: -66.67 };
-    const debts = calculateSimplifiedDebts(balances);
-    expectDebtsSettleBalances(debts, balances);
-  });
-});
-
-describe('calculateFullDebts', () => {
-  it('two people: { A: 50, B: -50 } -> has debt from B to A with amount > 0', () => {
-    const debts = calculateFullDebts({ A: 50, B: -50 });
-    expect(debts.length).toBeGreaterThanOrEqual(1);
-    const debt = debts.find(d => d.from === 'B' && d.to === 'A');
-    expect(debt).toBeDefined();
-    expect(debt!.amount).toBeGreaterThan(0);
-  });
-
-  it('all balanced: { A: 0, B: 0 } -> empty array', () => {
-    const debts = calculateFullDebts({ A: 0, B: 0 });
-    expect(debts).toHaveLength(0);
-  });
-
-  it('three people: { A: 60, B: -20, C: -40 } -> debtors are B,C and creditor is A', () => {
-    const debts = calculateFullDebts({ A: 60, B: -20, C: -40 });
-    const fromIds = debts.map(d => d.from);
-    const toIds = debts.map(d => d.to);
-    // All from IDs should be debtors (B, C)
-    fromIds.forEach(id => {
-      expect(['B', 'C']).toContain(id);
-    });
-    // All to IDs should be creditors (A)
-    toIds.forEach(id => {
-      expect(id).toBe('A');
-    });
-    // All amounts > 0
-    debts.forEach(d => {
-      expect(d.amount).toBeGreaterThan(0);
-    });
+    expect(findDebt(debts, 'Bob', 'Alice')?.amount).toBeCloseTo(50, 2);
+    expect(findDebt(debts, 'Carol', 'Alice')?.amount).toBeCloseTo(50, 2);
   });
 });

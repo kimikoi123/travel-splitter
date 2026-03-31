@@ -58,90 +58,73 @@ export function calculateBalances(expenses: Expense[], members: Member[], baseCu
   return balances;
 }
 
-interface BalanceEntry {
-  id: string;
-  amount: number;
-}
-
 /**
- * Full breakdown: every individual debt between pairs.
+ * Calculate direct per-payer debts.
+ * Each participant owes the person who actually paid, with per-pair netting.
  */
-export function calculateFullDebts(balances: Balances): Debt[] {
-  const debts: Debt[] = [];
-  const debtors: BalanceEntry[] = [];
-  const creditors: BalanceEntry[] = [];
+export function calculateDirectDebts(expenses: Expense[], members: Member[], baseCurrency: string, rates: ExchangeRates): Debt[] {
+  const debtMap = new Map<string, number>();
 
-  Object.entries(balances).forEach(([id, balance]) => {
-    if (balance < -0.01) {
-      debtors.push({ id, amount: -balance });
-    } else if (balance > 0.01) {
-      creditors.push({ id, amount: balance });
-    }
-  });
+  const addDebt = (from: string, to: string, amount: number) => {
+    if (from === to || amount === 0) return;
+    const key = `${from}:${to}`;
+    debtMap.set(key, (debtMap.get(key) ?? 0) + amount);
+  };
 
-  // Generate all pairs
-  debtors.forEach((debtor) => {
-    creditors.forEach((creditor) => {
-      // Proportion-based assignment
-      const totalDebt = debtors.reduce((s, d) => s + d.amount, 0);
-      const totalCredit = creditors.reduce((s, c) => s + c.amount, 0);
-      if (totalDebt > 0 && totalCredit > 0) {
-        const debtProportion = debtor.amount / totalDebt;
-        const creditProportion = creditor.amount / totalCredit;
-        const amount = Math.min(debtor.amount, creditor.amount) * Math.min(debtProportion + creditProportion, 1);
-        if (amount > 0.01) {
-          debts.push({
-            from: debtor.id,
-            to: creditor.id,
-            amount: amount,
-          });
-        }
+  expenses.forEach((expense) => {
+    const amountInBase = convertToBase(expense.amount, expense.currency, baseCurrency, rates);
+    if (amountInBase === 0) return;
+    const payer = expense.paidBy;
+
+    if (expense.splitType === 'equal') {
+      const share = amountInBase / expense.participants.length;
+      expense.participants.forEach((pid) => {
+        addDebt(pid, payer, share);
+      });
+    } else if (expense.splitType === 'custom') {
+      const totalCustom = Object.values(expense.customAmounts ?? {}).reduce((s, v) => s + v, 0);
+      if (totalCustom > 0) {
+        Object.entries(expense.customAmounts ?? {}).forEach(([pid, customAmt]) => {
+          const share = (customAmt / totalCustom) * amountInBase;
+          addDebt(pid, payer, share);
+        });
       }
-    });
-  });
-
-  return debts;
-}
-
-/**
- * Simplified debts: minimize number of transactions using greedy algorithm.
- */
-export function calculateSimplifiedDebts(balances: Balances): Debt[] {
-  const debts: Debt[] = [];
-  const debtors: BalanceEntry[] = [];
-  const creditors: BalanceEntry[] = [];
-
-  Object.entries(balances).forEach(([id, balance]) => {
-    if (balance < -0.01) {
-      debtors.push({ id, amount: -balance });
-    } else if (balance > 0.01) {
-      creditors.push({ id, amount: balance });
     }
-  });
 
-  // Sort descending
-  debtors.sort((a, b) => b.amount - a.amount);
-  creditors.sort((a, b) => b.amount - a.amount);
-
-  let i = 0;
-  let j = 0;
-
-  while (i < debtors.length && j < creditors.length) {
-    const amount = Math.min(debtors[i]!.amount, creditors[j]!.amount);
-    if (amount > 0.01) {
-      debts.push({
-        from: debtors[i]!.id,
-        to: creditors[j]!.id,
-        amount,
+    // Advance payments reduce the participant's debt to the payer
+    if (expense.advancePayments) {
+      Object.entries(expense.advancePayments).forEach(([pid, advanceAmt]) => {
+        if (advanceAmt > 0) {
+          const advanceInBase = convertToBase(advanceAmt, expense.currency, baseCurrency, rates);
+          // The advancer already paid part, so reduce their debt to payer
+          // (adding debt in reverse direction for netting)
+          addDebt(payer, pid, advanceInBase);
+        }
       });
     }
+  });
 
-    debtors[i]!.amount -= amount;
-    creditors[j]!.amount -= amount;
+  // Per-pair netting
+  const debts: Debt[] = [];
+  const processed = new Set<string>();
 
-    if (debtors[i]!.amount < 0.01) i++;
-    if (creditors[j]!.amount < 0.01) j++;
-  }
+  debtMap.forEach((_, key) => {
+    const [a, b] = key.split(':');
+    if (!a || !b) return;
+    const pairKey = [a, b].sort().join(':');
+    if (processed.has(pairKey)) return;
+    processed.add(pairKey);
+
+    const aToB = debtMap.get(`${a}:${b}`) ?? 0;
+    const bToA = debtMap.get(`${b}:${a}`) ?? 0;
+    const net = aToB - bToA;
+
+    if (net > 0.01) {
+      debts.push({ from: a, to: b, amount: Math.round(net * 100) / 100 });
+    } else if (net < -0.01) {
+      debts.push({ from: b, to: a, amount: Math.round(-net * 100) / 100 });
+    }
+  });
 
   return debts;
 }
