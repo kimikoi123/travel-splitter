@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTrip } from './hooks/useTrip';
 import { useExchangeRates } from './hooks/useExchangeRates';
+import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { useToast } from './hooks/useToast';
 import Header from './components/Header';
 import TripList from './components/TripList';
 import TripDashboard from './components/TripDashboard';
 import ShareImportBanner from './components/ShareImportBanner';
+import OfflineBanner from './components/OfflineBanner';
 import ToastContainer from './components/Toast';
 import UpdatePrompt from './components/UpdatePrompt';
 import { getSharedTripFromUrl } from './utils/sharing';
@@ -31,6 +33,7 @@ function App() {
   } = useTrip();
 
   const exchangeRates = useExchangeRates();
+  const { isOnline } = useOnlineStatus();
   const { toasts, showToast, undoToast, dismissToast, duration } = useToast();
 
   const [pendingSharedTrip, setPendingSharedTrip] = useState<Trip | null>(null);
@@ -99,6 +102,7 @@ function App() {
         onExport={exportData}
         onImport={importData}
       />
+      {!isOnline && <OfflineBanner />}
       {pendingSharedTrip && (
         <ShareImportBanner
           tripName={pendingSharedTrip.name}
