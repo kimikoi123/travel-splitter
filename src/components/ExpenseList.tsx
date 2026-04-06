@@ -1,7 +1,8 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { Pencil, Trash2, ReceiptText, Calendar, Search, X } from 'lucide-react';
+import { Pencil, Trash2, ReceiptText, Calendar, Search, X, Camera } from 'lucide-react';
 import { formatCurrency } from '../utils/currencies';
 import { getAllCategories, getCategoryIcon, getCategoryColor } from '../utils/categories';
+import { getReceiptPhotosForTrip } from '../db/storage';
 import type { Expense, Member } from '../types';
 
 interface ExpenseListProps {
@@ -19,6 +20,8 @@ export default function ExpenseList({ expenses, members, customCategories, onRem
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [pendingDeletes, setPendingDeletes] = useState<Set<string>>(new Set());
   const [openPaidByDropdown, setOpenPaidByDropdown] = useState<string | null>(null);
+  const [receiptPhotos, setReceiptPhotos] = useState<Map<string, string>>(new Map());
+  const [viewingReceipt, setViewingReceipt] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -31,6 +34,13 @@ export default function ExpenseList({ expenses, members, customCategories, onRem
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [openPaidByDropdown]);
+
+  useEffect(() => {
+    const expenseIds = expenses.filter(e => !e.isSettlement).map(e => e.id);
+    if (expenseIds.length > 0) {
+      getReceiptPhotosForTrip(expenseIds).then(setReceiptPhotos);
+    }
+  }, [expenses]);
 
   const getMemberName = (id: string) => members.find((m) => m.id === id)?.name ?? 'Unknown';
 
@@ -236,6 +246,20 @@ export default function ExpenseList({ expenses, members, customCategories, onRem
                           <span className="shrink-0 text-accent">Advance paid</span>
                         </>
                       )}
+                      {receiptPhotos.has(expense.id) && (
+                        <>
+                          <span className="shrink-0">·</span>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setViewingReceipt(receiptPhotos.get(expense.id)!); }}
+                            className="shrink-0 text-primary-light hover:text-primary transition-colors flex items-center gap-0.5"
+                            aria-label="View receipt"
+                          >
+                            <Camera size={11} />
+                            <span>Receipt</span>
+                          </button>
+                        </>
+                      )}
                     </div>
                     <div className="flex items-center shrink-0 gap-0 sm:opacity-0 sm:group-hover:opacity-100">
                       <button
@@ -258,6 +282,29 @@ export default function ExpenseList({ expenses, members, customCategories, onRem
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Receipt Photo Viewer Modal */}
+      {viewingReceipt && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setViewingReceipt(null)}
+        >
+          <div className="relative max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setViewingReceipt(null)}
+              className="absolute -top-3 -right-3 z-10 p-2 bg-surface rounded-full border border-border text-text-secondary hover:text-text-primary transition-colors"
+              aria-label="Close receipt viewer"
+            >
+              <X size={16} />
+            </button>
+            <img
+              src={viewingReceipt}
+              alt="Receipt"
+              className="w-full rounded-xl border border-border"
+            />
+          </div>
         </div>
       )}
     </div>

@@ -128,3 +128,51 @@ export function calculateDirectDebts(expenses: Expense[], _members: Member[], ba
 
   return debts;
 }
+
+/**
+ * Calculate simplified debts that minimize the total number of transactions.
+ * Uses a greedy algorithm: repeatedly match the largest debtor with the largest creditor.
+ */
+export function calculateSimplifiedDebts(expenses: Expense[], members: Member[], baseCurrency: string, rates: ExchangeRates): Debt[] {
+  const balances = calculateBalances(expenses, members, baseCurrency, rates);
+
+  // Build arrays of debtors (negative balance) and creditors (positive balance)
+  const debtors: { id: string; amount: number }[] = [];
+  const creditors: { id: string; amount: number }[] = [];
+
+  for (const [id, balance] of Object.entries(balances)) {
+    if (balance < -0.01) {
+      debtors.push({ id, amount: -balance }); // store as positive
+    } else if (balance > 0.01) {
+      creditors.push({ id, amount: balance });
+    }
+  }
+
+  const debts: Debt[] = [];
+
+  while (debtors.length > 0 && creditors.length > 0) {
+    // Find the largest debtor and largest creditor
+    debtors.sort((a, b) => b.amount - a.amount);
+    creditors.sort((a, b) => b.amount - a.amount);
+
+    const debtor = debtors[0]!;
+    const creditor = creditors[0]!;
+    const settleAmount = Math.min(debtor.amount, creditor.amount);
+
+    if (settleAmount > 0.01) {
+      debts.push({
+        from: debtor.id,
+        to: creditor.id,
+        amount: Math.round(settleAmount * 100) / 100,
+      });
+    }
+
+    debtor.amount -= settleAmount;
+    creditor.amount -= settleAmount;
+
+    if (debtor.amount < 0.01) debtors.shift();
+    if (creditor.amount < 0.01) creditors.shift();
+  }
+
+  return debts;
+}

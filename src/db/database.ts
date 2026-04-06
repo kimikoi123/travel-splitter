@@ -16,11 +16,17 @@ interface DeletedTripRecord extends DeletedTrip {
   id: string;
 }
 
+interface ReceiptPhotoRecord {
+  expenseId: string;
+  data: string; // base64 data URI
+}
+
 class SplitTripDB extends Dexie {
   trips!: Table<Trip, string>;
   meta!: Table<MetaRecord, string>;
   rateCache!: Table<RateCacheRecord, string>;
   deletedTrips!: Table<DeletedTripRecord, string>;
+  receiptPhotos!: Table<ReceiptPhotoRecord, string>;
 
   constructor() {
     super('splittrip');
@@ -35,6 +41,13 @@ class SplitTripDB extends Dexie {
       rateCache: 'key',
       deletedTrips: 'id',
     });
+    this.version(3).stores({
+      trips: 'id',
+      meta: 'key',
+      rateCache: 'key',
+      deletedTrips: 'id',
+      receiptPhotos: 'expenseId',
+    });
   }
 }
 
@@ -42,4 +55,4 @@ class SplitTripDB extends Dexie {
 const db = new SplitTripDB();
 
 export { db };
-export type { MetaRecord, RateCacheRecord };
+export type { MetaRecord, RateCacheRecord, ReceiptPhotoRecord };
