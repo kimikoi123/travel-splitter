@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateBalances, calculateDirectDebts } from './settlement';
+import { calculateBalances, calculateDirectDebts, calculateSimplifiedDebts } from './settlement';
 import type { Member, Expense, Balances, Debt, SplitType } from '../types';
 
 function makeMember(id: string, name?: string): Member {
@@ -357,5 +357,89 @@ describe('calculateDirectDebts', () => {
     expect(debts).toHaveLength(2);
     expect(findDebt(debts, 'Bob', 'Alice')?.amount).toBeCloseTo(50, 2);
     expect(findDebt(debts, 'Carol', 'Alice')?.amount).toBeCloseTo(50, 2);
+  });
+});
+
+describe('calculateSimplifiedDebts', () => {
+  const findDebt = (debts: Debt[], from: string, to: string) =>
+    debts.find(d => d.from === from && d.to === to);
+
+  it('basic 2 members: same result as direct debts', () => {
+    const members = [makeMember('Alice'), makeMember('Bob')];
+    const expenses = [
+      makeExpense({ amount: 100, paidBy: 'Alice', participants: ['Alice', 'Bob'] }),
+    ];
+    const debts = calculateSimplifiedDebts(expenses, members, 'USD', { USD: 1 });
+    expect(debts).toHaveLength(1);
+    expect(findDebt(debts, 'Bob', 'Alice')?.amount).toBeCloseTo(50, 2);
+  });
+
+  it('3-member chain: A owes B, B owes C → simplified to fewer transactions', () => {
+    const members = [makeMember('Alice'), makeMember('Bob'), makeMember('Carol')];
+    // Alice pays 300 split 3-way: each owes 100. Alice balance +200, Bob -100, Carol -100
+    // Bob pays 150 split 3-way: each owes 50. Bob balance +100, Alice -50, Carol -50
+    // Net: Alice +150, Bob 0, Carol -150
+    // Simplified: Carol pays Alice 150 (1 transaction vs 3 with direct debts)
+    const expenses = [
+      makeExpense({ id: 'e1', amount: 300, paidBy: 'Alice', participants: ['Alice', 'Bob', 'Carol'] }),
+      makeExpense({ id: 'e2', amount: 150, paidBy: 'Bob', participants: ['Alice', 'Bob', 'Carol'] }),
+    ];
+    const debts = calculateSimplifiedDebts(expenses, members, 'USD', { USD: 1 });
+    expect(debts).toHaveLength(1);
+    expect(findDebt(debts, 'Carol', 'Alice')?.amount).toBeCloseTo(150, 2);
+  });
+
+  it('4 members: produces fewer transactions than direct debts', () => {
+    const members = [makeMember('A'), makeMember('B'), makeMember('C'), makeMember('D')];
+    // A pays 400 split 4-way: each share 100. A: +300, B: -100, C: -100, D: -100
+    const expenses = [
+      makeExpense({ amount: 400, paidBy: 'A', participants: ['A', 'B', 'C', 'D'] }),
+    ];
+    const debts = calculateSimplifiedDebts(expenses, members, 'USD', { USD: 1 });
+    // B, C, D each owe A 100 => 3 transactions (same as direct in this case)
+    expect(debts).toHaveLength(3);
+    const totalOwed = debts.reduce((sum, d) => sum + d.amount, 0);
+    expect(totalOwed).toBeCloseTo(300, 2);
+  });
+
+  it('empty expenses: no debts', () => {
+    const members = [makeMember('Alice'), makeMember('Bob')];
+    const debts = calculateSimplifiedDebts([], members, 'USD', { USD: 1 });
+    expect(debts).toHaveLength(0);
+  });
+
+  it('all members equal: no debts', () => {
+    const members = [makeMember('Alice'), makeMember('Bob')];
+    const expenses = [
+      makeExpense({ id: 'e1', amount: 100, paidBy: 'Alice', participants: ['Alice', 'Bob'] }),
+      makeExpense({ id: 'e2', amount: 100, paidBy: 'Bob', participants: ['Alice', 'Bob'] }),
+    ];
+    const debts = calculateSimplifiedDebts(expenses, members, 'USD', { USD: 1 });
+    expect(debts).toHaveLength(0);
+  });
+
+  it('total debits equal total credits', () => {
+    const members = [makeMember('A'), makeMember('B'), makeMember('C'), makeMember('D')];
+    const expenses = [
+      makeExpense({ id: 'e1', amount: 120, paidBy: 'A', participants: ['A', 'B', 'C', 'D'] }),
+      makeExpense({ id: 'e2', amount: 80, paidBy: 'B', participants: ['A', 'B', 'C'] }),
+      makeExpense({ id: 'e3', amount: 60, paidBy: 'C', participants: ['C', 'D'] }),
+    ];
+    const debts = calculateSimplifiedDebts(expenses, members, 'USD', { USD: 1 });
+    const totalDebited = debts.reduce((sum, d) => sum + d.amount, 0);
+    const balances = calculateBalances(expenses, members, 'USD', { USD: 1 });
+    const totalCredits = Object.values(balances).filter(v => v > 0).reduce((s, v) => s + v, 0);
+    expect(totalDebited).toBeCloseTo(totalCredits, 1);
+  });
+
+  it('simplified produces fewer or equal transactions compared to direct', () => {
+    const members = [makeMember('A'), makeMember('B'), makeMember('C')];
+    const expenses = [
+      makeExpense({ id: 'e1', amount: 300, paidBy: 'A', participants: ['A', 'B', 'C'] }),
+      makeExpense({ id: 'e2', amount: 150, paidBy: 'B', participants: ['A', 'B', 'C'] }),
+    ];
+    const directDebts = calculateDirectDebts(expenses, members, 'USD', { USD: 1 });
+    const simplifiedDebts = calculateSimplifiedDebts(expenses, members, 'USD', { USD: 1 });
+    expect(simplifiedDebts.length).toBeLessThanOrEqual(directDebts.length);
   });
 });

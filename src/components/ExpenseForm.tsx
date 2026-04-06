@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Plus, Check, X } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Plus, Check, X, Camera, Trash2 } from 'lucide-react';
 import { CURRENCIES } from '../utils/currencies';
 import { getAllCategories, toSlug } from '../utils/categories';
+import { compressImage } from '../utils/imageUtils';
+import { getReceiptPhoto } from '../db/storage';
 import InlineAlert from './ui/InlineAlert';
 import type { Member, Expense, SplitType } from '../types';
 
@@ -14,9 +16,11 @@ interface ExpenseFormProps {
   onAddCategory?: (name: string) => void;
   editingExpense?: Expense;
   onEdit?: (id: string, updates: Omit<Expense, 'id' | 'createdAt'>) => void;
+  onSaveReceipt?: (expenseId: string, dataUrl: string | null) => void;
+  onPendingReceipt?: (dataUrl: string | null) => void;
 }
 
-export default function ExpenseForm({ members, baseCurrency, customCategories, onAdd, onCancel, onAddCategory, editingExpense, onEdit }: ExpenseFormProps) {
+export default function ExpenseForm({ members, baseCurrency, customCategories, onAdd, onCancel, onAddCategory, editingExpense, onEdit, onSaveReceipt, onPendingReceipt }: ExpenseFormProps) {
   const isEditing = !!editingExpense;
   const [description, setDescription] = useState(editingExpense?.description ?? '');
   const [amount, setAmount] = useState(editingExpense ? String(editingExpense.amount) : '');
@@ -34,11 +38,22 @@ export default function ExpenseForm({ members, baseCurrency, customCategories, o
   const [validationError, setValidationError] = useState<string | null>(null);
   const [addingCategory, setAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [receiptPhoto, setReceiptPhoto] = useState<string | null>(null);
+  const [receiptRemoved, setReceiptRemoved] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const dismissValidation = useCallback(() => setValidationError(null), []);
 
   useEffect(() => {
     setValidationError(null);
   }, [splitType, customAmounts]);
+
+  useEffect(() => {
+    if (editingExpense) {
+      getReceiptPhoto(editingExpense.id).then((data) => {
+        if (data) setReceiptPhoto(data);
+      });
+    }
+  }, [editingExpense]);
 
   const categories = getAllCategories(customCategories);
 
@@ -55,6 +70,26 @@ export default function ExpenseForm({ members, baseCurrency, customCategories, o
     setCategory(slug);
     setAddingCategory(false);
     setNewCategoryName('');
+  };
+
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const dataUrl = await compressImage(file);
+      setReceiptPhoto(dataUrl);
+      setReceiptRemoved(false);
+      if (!isEditing) onPendingReceipt?.(dataUrl);
+    } catch {
+      setValidationError('Failed to process image');
+    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleRemovePhoto = () => {
+    setReceiptPhoto(null);
+    setReceiptRemoved(true);
+    if (!isEditing) onPendingReceipt?.(null);
   };
 
   const toggleParticipant = (id: string) => {
@@ -121,6 +156,9 @@ export default function ExpenseForm({ members, baseCurrency, customCategories, o
 
     if (isEditing && onEdit) {
       onEdit(editingExpense.id, expense);
+      if (onSaveReceipt && (receiptPhoto || receiptRemoved)) {
+        onSaveReceipt(editingExpense.id, receiptPhoto);
+      }
     } else {
       onAdd(expense);
     }
@@ -225,6 +263,46 @@ export default function ExpenseForm({ members, baseCurrency, customCategories, o
           onChange={(e) => setDate(e.target.value)}
           aria-label="Expense date"
           className="sm:col-span-2 bg-surface-light border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
+        />
+      </div>
+
+      {/* Receipt Photo */}
+      <div>
+        <label className="text-xs font-medium text-text-secondary mb-2 block">Receipt photo</label>
+        {receiptPhoto ? (
+          <div className="relative inline-block">
+            <img
+              src={receiptPhoto}
+              alt="Receipt"
+              className="w-24 h-24 object-cover rounded-lg border border-border"
+            />
+            <button
+              type="button"
+              onClick={handleRemovePhoto}
+              className="absolute -top-2 -right-2 p-1 bg-danger rounded-full text-white hover:bg-danger/80 transition-colors"
+              aria-label="Remove receipt photo"
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-2 px-3 py-2 bg-surface-light border border-border border-dashed rounded-lg text-sm text-text-secondary hover:text-text-primary hover:border-primary/50 transition-colors"
+          >
+            <Camera size={16} />
+            Add receipt
+          </button>
+        )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handlePhotoSelect}
+          className="hidden"
+          aria-label="Upload receipt photo"
         />
       </div>
 

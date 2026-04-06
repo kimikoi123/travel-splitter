@@ -55,3 +55,22 @@ export async function loadRateCache(): Promise<{ rates: ExchangeRates; timestamp
 export async function saveRateCache(rates: ExchangeRates, timestamp: number): Promise<void> {
   await db.rateCache.put({ key: 'rates', rates, timestamp });
 }
+
+// Receipt photo storage
+export async function saveReceiptPhoto(expenseId: string, dataUrl: string): Promise<void> {
+  await db.receiptPhotos.put({ expenseId, data: dataUrl });
+}
+
+export async function getReceiptPhoto(expenseId: string): Promise<string | undefined> {
+  const record = await db.receiptPhotos.get(expenseId);
+  return record?.data;
+}
+
+export async function deleteReceiptPhoto(expenseId: string): Promise<void> {
+  await db.receiptPhotos.delete(expenseId);
+}
+
+export async function getReceiptPhotosForTrip(expenseIds: string[]): Promise<Map<string, string>> {
+  const records = await db.receiptPhotos.where('expenseId').anyOf(expenseIds).toArray();
+  return new Map(records.map((r) => [r.expenseId, r.data]));
+}

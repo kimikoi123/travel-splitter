@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { ArrowRight, TrendingUp, TrendingDown, CheckCircle, Undo2 } from 'lucide-react';
-import { calculateBalances, calculateDirectDebts } from '../utils/settlement';
+import { calculateBalances, calculateDirectDebts, calculateSimplifiedDebts } from '../utils/settlement';
 import { formatCurrency, convertToBase } from '../utils/currencies';
 import { getInitials, getAvatarColor } from '../utils/helpers';
 import type { Expense, Member, ExchangeRates } from '../types';
@@ -13,7 +14,10 @@ interface SettlementProps {
   onUnmarkPaid?: (expenseId: string) => void;
 }
 
+type DebtMode = 'direct' | 'simplified';
+
 export default function Settlement({ expenses, members, baseCurrency, rates, onMarkPaid, onUnmarkPaid }: SettlementProps) {
+  const [debtMode, setDebtMode] = useState<DebtMode>('direct');
 
   if (members.length === 0 || expenses.length === 0) {
     return (
@@ -24,7 +28,9 @@ export default function Settlement({ expenses, members, baseCurrency, rates, onM
   }
 
   const balances = calculateBalances(expenses, members, baseCurrency, rates);
-  const debts = calculateDirectDebts(expenses, members, baseCurrency, rates);
+  const debts = debtMode === 'simplified'
+    ? calculateSimplifiedDebts(expenses, members, baseCurrency, rates)
+    : calculateDirectDebts(expenses, members, baseCurrency, rates);
 
   const settlementExpenses = expenses.filter(e => e.isSettlement);
   const settledDebts = settlementExpenses.map(e => ({
@@ -90,9 +96,26 @@ export default function Settlement({ expenses, members, baseCurrency, rates, onM
 
       {/* Settlement */}
       <div className="bg-surface rounded-xl border border-border p-4">
-        <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wide mb-3" data-heading>
-          Who Pays Who
-        </h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wide" data-heading>
+            Who Pays Who
+          </h3>
+          <div className="flex gap-1 bg-surface-light rounded-lg p-0.5">
+            {(['direct', 'simplified'] as const).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setDebtMode(mode)}
+                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors capitalize ${
+                  debtMode === mode
+                    ? 'bg-primary text-white'
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {debts.length === 0 && settledDebts.length === 0 ? (
           <p className="text-sm text-success text-center py-4">All settled up!</p>

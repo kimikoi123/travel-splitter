@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Plus, Receipt, Scale, Users as UsersIcon, BarChart3, RefreshCw, Wifi, WifiOff, Share2 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import MemberManager from './MemberManager';
@@ -9,6 +9,7 @@ import Analytics from './Analytics';
 import ShareDialog from './ShareDialog';
 import { CURRENCIES, convertToBase } from '../utils/currencies';
 import { generateShareUrl } from '../utils/sharing';
+import { saveReceiptPhoto, deleteReceiptPhoto } from '../db/storage';
 import type { Trip, Member, Expense, ExchangeRates, RateSource } from '../types';
 
 interface ExchangeRateState {
@@ -60,9 +61,14 @@ export default function TripDashboard({
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
+  const pendingReceiptRef = useRef<string | null>(null);
 
   const handleAddExpense = (expense: Omit<Expense, 'id' | 'createdAt'>) => {
-    onAddExpense(expense);
+    const created = onAddExpense(expense);
+    if (created && pendingReceiptRef.current) {
+      saveReceiptPhoto(created.id, pendingReceiptRef.current);
+      pendingReceiptRef.current = null;
+    }
     setShowExpenseForm(false);
   };
 
@@ -96,6 +102,19 @@ export default function TripDashboard({
       category: 'settlement',
       isSettlement: true,
     });
+  };
+
+  const handleSaveReceipt = (expenseId: string, dataUrl: string | null) => {
+    if (dataUrl) {
+      saveReceiptPhoto(expenseId, dataUrl);
+    } else {
+      deleteReceiptPhoto(expenseId);
+    }
+  };
+
+  const handleRemoveExpense = (id: string) => {
+    onRemoveExpense(id);
+    deleteReceiptPhoto(id);
   };
 
   const handleAddCategory = (name: string) => {
@@ -239,6 +258,8 @@ export default function TripDashboard({
               onAddCategory={handleAddCategory}
               editingExpense={editingExpense ?? undefined}
               onEdit={handleEditExpense}
+              onSaveReceipt={handleSaveReceipt}
+              onPendingReceipt={(dataUrl) => { pendingReceiptRef.current = dataUrl; }}
             />
           )}
 
@@ -246,7 +267,7 @@ export default function TripDashboard({
             expenses={trip.expenses}
             members={trip.members}
             customCategories={trip.customCategories}
-            onRemove={onRemoveExpense}
+            onRemove={handleRemoveExpense}
             onEdit={handleStartEdit}
             onQuickEdit={onEditExpense}
             showToast={showToast}
