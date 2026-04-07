@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, X } from 'lucide-react';
 import { formatCurrency } from '../utils/currencies';
 import type { Account } from '../types';
 
@@ -41,25 +41,15 @@ export default function TransferForm({
           <button
             type="button"
             onClick={onCancel}
-            className="text-sm text-text-secondary active:opacity-60 transition-opacity"
+            aria-label="Close"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-start text-text-secondary active:opacity-60 transition-opacity"
           >
-            Cancel
+            <X size={20} />
           </button>
           <h1 className="text-base font-semibold text-text-primary">
             Transfer
           </h1>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!canSave}
-            className={`text-sm font-semibold transition-opacity ${
-              canSave
-                ? 'text-primary active:opacity-60'
-                : 'text-primary opacity-50 cursor-not-allowed'
-            }`}
-          >
-            Save
-          </button>
+          <div className="min-w-[44px]" />
         </div>
       </div>
 
@@ -161,6 +151,25 @@ export default function TransferForm({
             autoFocus
           />
         </div>
+      </div>
+
+      {/* Sticky Save Footer */}
+      <div
+        className="flex-shrink-0 px-4 pt-3 pb-3 border-t border-border/30 bg-bg"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
+      >
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={!canSave}
+          className={`w-full rounded-2xl py-3.5 font-semibold text-sm transition-all ${
+            canSave
+              ? 'bg-primary text-white active:opacity-80'
+              : 'bg-primary/40 text-white/50 cursor-not-allowed'
+          }`}
+        >
+          Save
+        </button>
       </div>
     </div>
   );

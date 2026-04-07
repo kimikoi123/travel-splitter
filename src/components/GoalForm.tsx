@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { ArrowLeft, Check } from 'lucide-react';
+import { X, Check } from 'lucide-react';
 import type { Goal, Account } from '../types';
 import { ACCOUNT_COLORS } from '../hooks/useAccounts';
 
@@ -76,32 +76,21 @@ export default function GoalForm({
           <button
             type="button"
             onClick={onCancel}
-            className="flex items-center gap-1 text-sm text-text-secondary active:opacity-60 transition-opacity"
+            aria-label="Close"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-start text-text-secondary active:opacity-60 transition-opacity"
           >
-            <ArrowLeft size={18} />
-            <span>Cancel</span>
+            <X size={20} />
           </button>
           <h1 className="text-base font-semibold text-text-primary">
             {isEditing ? 'Edit Goal' : 'Add Goal'}
           </h1>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!canSave}
-            className={`text-sm font-semibold transition-opacity ${
-              canSave
-                ? 'text-primary active:opacity-60'
-                : 'text-primary opacity-50 cursor-not-allowed'
-            }`}
-          >
-            Save
-          </button>
+          <div className="min-w-[44px]" />
         </div>
       </div>
 
       {/* Form content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="px-4 py-6 space-y-6 pb-10">
+        <div className="px-4 py-6 space-y-6 pb-4">
           {/* Goal Name */}
           <div>
             <label className="text-[11px] text-text-secondary font-semibold uppercase tracking-wider mb-2 block">
@@ -219,20 +208,26 @@ export default function GoalForm({
             </div>
           </div>
 
-          {/* Save button */}
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!canSave}
-            className={`w-full rounded-2xl py-3.5 font-semibold text-sm transition-all ${
-              canSave
-                ? 'bg-primary text-white active:opacity-80'
-                : 'bg-primary/40 text-white/50 cursor-not-allowed'
-            }`}
-          >
-            {isEditing ? 'Update Goal' : 'Save Goal'}
-          </button>
         </div>
+      </div>
+
+      {/* Sticky Save Footer */}
+      <div
+        className="flex-shrink-0 px-4 pt-3 pb-3 border-t border-border/30 bg-bg"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
+      >
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={!canSave}
+          className={`w-full rounded-2xl py-3.5 font-semibold text-sm transition-all ${
+            canSave
+              ? 'bg-primary text-white active:opacity-80'
+              : 'bg-primary/40 text-white/50 cursor-not-allowed'
+          }`}
+        >
+          {isEditing ? 'Update Goal' : 'Save Goal'}
+        </button>
       </div>
     </div>
   );

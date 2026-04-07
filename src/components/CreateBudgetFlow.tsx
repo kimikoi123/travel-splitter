@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { ArrowLeft, Check, ChevronRight } from 'lucide-react';
+import { ArrowLeft, X, Check, ChevronRight } from 'lucide-react';
 import type { Budget } from '../types';
 import { EXPENSE_CATEGORIES } from '../utils/categories';
 import type { FinanceCategoryDef } from '../utils/categories';
@@ -171,32 +171,15 @@ export default function CreateBudgetFlow({
           <button
             type="button"
             onClick={handleBack}
-            className="flex items-center gap-1 text-sm text-text-secondary active:opacity-60 transition-opacity"
+            aria-label={step === 1 || isEditing ? 'Close' : 'Back'}
+            className="min-w-[44px] min-h-[44px] flex items-center justify-start text-text-secondary active:opacity-60 transition-opacity"
           >
-            <ArrowLeft size={18} />
-            <span>
-              {step === 1 || isEditing ? 'Cancel' : 'Back'}
-            </span>
+            {step === 1 || isEditing ? <X size={20} /> : <ArrowLeft size={20} />}
           </button>
           <h1 className="text-base font-semibold text-text-primary">
             {headerTitle}
           </h1>
-          {showSaveButton ? (
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={!canSave}
-              className={`text-sm font-semibold transition-opacity ${
-                canSave
-                  ? 'text-primary active:opacity-60'
-                  : 'text-primary opacity-50 cursor-not-allowed'
-              }`}
-            >
-              Save
-            </button>
-          ) : (
-            <div className="w-10" />
-          )}
+          <div className="min-w-[44px]" />
         </div>
       </div>
 
@@ -210,8 +193,6 @@ export default function CreateBudgetFlow({
             amount={amount}
             setAmount={setAmount}
             isEditing={isEditing}
-            canSave={canSave}
-            onSave={handleSave}
           />
         )}
 
@@ -232,11 +213,30 @@ export default function CreateBudgetFlow({
             selectedColor={selectedColor}
             setSelectedColor={setSelectedColor}
             isCustomEntry={isCustomEntry}
-            canSave={canSave}
-            onSave={handleSave}
           />
         )}
       </div>
+
+      {/* Sticky Save Footer */}
+      {showSaveButton && (
+        <div
+          className="flex-shrink-0 px-4 pt-3 pb-3 border-t border-border/30 bg-bg"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
+        >
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={!canSave}
+            className={`w-full rounded-2xl py-3.5 font-semibold text-sm transition-all ${
+              canSave
+                ? 'bg-primary text-white active:opacity-80'
+                : 'bg-primary/40 text-white/50 cursor-not-allowed'
+            }`}
+          >
+            Save Budget
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -250,8 +250,6 @@ function CategoryBudgetForm({
   amount,
   setAmount,
   isEditing,
-  canSave,
-  onSave,
 }: {
   availableCategories: FinanceCategoryDef[];
   selectedCategory: FinanceCategoryDef | null;
@@ -259,11 +257,9 @@ function CategoryBudgetForm({
   amount: string;
   setAmount: (v: string) => void;
   isEditing: boolean;
-  canSave: boolean;
-  onSave: () => void;
 }) {
   return (
-    <div className="px-4 py-6 space-y-6 pb-10">
+    <div className="px-4 py-6 space-y-6 pb-4">
       {/* Category picker */}
       {!isEditing && (
         <div>
@@ -345,19 +341,6 @@ function CategoryBudgetForm({
         />
       </div>
 
-      {/* Save button */}
-      <button
-        type="button"
-        onClick={onSave}
-        disabled={!canSave}
-        className={`w-full rounded-2xl py-3.5 font-semibold text-sm transition-all ${
-          canSave
-            ? 'bg-primary text-white active:opacity-80'
-            : 'bg-primary/40 text-white/50 cursor-not-allowed'
-        }`}
-      >
-        Save Budget
-      </button>
     </div>
   );
 }
@@ -445,8 +428,6 @@ function CustomBudgetForm({
   selectedColor,
   setSelectedColor,
   isCustomEntry,
-  canSave,
-  onSave,
 }: {
   name: string;
   setName: (v: string) => void;
@@ -455,11 +436,9 @@ function CustomBudgetForm({
   selectedColor: string;
   setSelectedColor: (v: string) => void;
   isCustomEntry: boolean;
-  canSave: boolean;
-  onSave: () => void;
 }) {
   return (
-    <div className="px-4 py-6 space-y-6 pb-10">
+    <div className="px-4 py-6 space-y-6 pb-4">
       {/* Name */}
       <div>
         <label className="text-[11px] text-text-secondary font-semibold uppercase tracking-wider mb-2 block">
@@ -524,19 +503,6 @@ function CustomBudgetForm({
         </div>
       </div>
 
-      {/* Save button */}
-      <button
-        type="button"
-        onClick={onSave}
-        disabled={!canSave}
-        className={`w-full rounded-2xl py-3.5 font-semibold text-sm transition-all ${
-          canSave
-            ? 'bg-primary text-white active:opacity-80'
-            : 'bg-primary/40 text-white/50 cursor-not-allowed'
-        }`}
-      >
-        Save Budget
-      </button>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import {
   ArrowLeft,
+  X,
   Banknote,
   Building2,
   CreditCard,
@@ -271,30 +272,15 @@ export default function AddAccountFlow({
           <button
             type="button"
             onClick={handleBack}
-            className="flex items-center gap-1 text-sm text-text-secondary active:opacity-60 transition-opacity"
+            aria-label={step === 1 ? 'Close' : 'Back'}
+            className="min-w-[44px] min-h-[44px] flex items-center justify-start text-text-secondary active:opacity-60 transition-opacity"
           >
-            <ArrowLeft size={18} />
-            <span>{step === 1 ? 'Cancel' : 'Back'}</span>
+            {step === 1 ? <X size={20} /> : <ArrowLeft size={20} />}
           </button>
           <h1 className="text-base font-semibold text-text-primary">
             {stepTitle}
           </h1>
-          {step === 3 ? (
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={!canSave}
-              className={`text-sm font-semibold transition-opacity ${
-                canSave
-                  ? 'text-primary active:opacity-60'
-                  : 'text-primary opacity-50 cursor-not-allowed'
-              }`}
-            >
-              Save
-            </button>
-          ) : (
-            <div className="w-10" />
-          )}
+          <div className="min-w-[44px]" />
         </div>
       </div>
 
@@ -333,11 +319,30 @@ export default function AddAccountFlow({
             setUnits={setUnits}
             pricePerUnit={pricePerUnit}
             setPricePerUnit={setPricePerUnit}
-            canSave={canSave}
-            onSave={handleSave}
           />
         )}
       </div>
+
+      {/* Sticky Save Footer */}
+      {step === 3 && (
+        <div
+          className="flex-shrink-0 px-4 pt-3 pb-3 border-t border-border/30 bg-bg"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
+        >
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={!canSave}
+            className={`w-full rounded-2xl py-3.5 font-semibold text-sm transition-all ${
+              canSave
+                ? 'bg-primary text-white active:opacity-80'
+                : 'bg-primary/40 text-white/50 cursor-not-allowed'
+            }`}
+          >
+            {isStocksOrCrypto ? 'Add Investment' : 'Save Account'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -461,8 +466,6 @@ interface StepDetailsFormProps {
   setUnits: (v: string) => void;
   pricePerUnit: string;
   setPricePerUnit: (v: string) => void;
-  canSave: boolean;
-  onSave: () => void;
 }
 
 function StepDetailsForm({
@@ -488,11 +491,9 @@ function StepDetailsForm({
   setUnits,
   pricePerUnit,
   setPricePerUnit,
-  canSave,
-  onSave,
 }: StepDetailsFormProps) {
   return (
-    <div className="px-4 py-6 space-y-6 pb-10">
+    <div className="px-4 py-6 space-y-6 pb-4">
       {/* Account Name */}
       <div>
         <label className="text-[11px] text-text-secondary font-semibold uppercase tracking-wider mb-2 block">
@@ -725,19 +726,6 @@ function StepDetailsForm({
         </div>
       </div>
 
-      {/* Save button */}
-      <button
-        type="button"
-        onClick={onSave}
-        disabled={!canSave}
-        className={`w-full rounded-2xl py-3.5 font-semibold text-sm transition-all ${
-          canSave
-            ? 'bg-primary text-white active:opacity-80'
-            : 'bg-primary/40 text-white/50 cursor-not-allowed'
-        }`}
-      >
-        {isStocksOrCrypto ? 'Add Investment' : 'Save Account'}
-      </button>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, X } from 'lucide-react';
 import { CURRENCIES } from '../utils/currencies';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../utils/categories';
 import type { FinanceCategoryDef } from '../utils/categories';
@@ -79,25 +79,15 @@ export default function TransactionForm({
           <button
             type="button"
             onClick={onCancel}
-            className="text-sm text-text-secondary active:opacity-60 transition-opacity"
+            aria-label="Close"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-start text-text-secondary active:opacity-60 transition-opacity"
           >
-            Cancel
+            <X size={20} />
           </button>
           <h1 className="text-base font-semibold text-text-primary">
             {isExpense ? 'Add Expense' : 'Add Income'}
           </h1>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!canSave}
-            className={`text-sm font-semibold transition-opacity ${
-              canSave
-                ? 'text-primary active:opacity-60'
-                : 'text-primary opacity-50 cursor-not-allowed'
-            }`}
-          >
-            Save
-          </button>
+          <div className="min-w-[44px]" />
         </div>
       </div>
 
@@ -167,7 +157,7 @@ export default function TransactionForm({
           </div>
         </div>
 
-        <div className="px-4 space-y-6 pb-8">
+        <div className="px-4 space-y-6 pb-4">
           {/* Description field */}
           <div>
             <label className="text-[10px] font-semibold uppercase tracking-widest text-text-secondary mb-2 block">
@@ -306,6 +296,25 @@ export default function TransactionForm({
             </div>
           )}
         </div>
+      </div>
+
+      {/* Sticky Save Footer */}
+      <div
+        className="flex-shrink-0 px-4 pt-3 pb-3 border-t border-border/30 bg-bg"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
+      >
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={!canSave}
+          className={`w-full rounded-2xl py-3.5 font-semibold text-sm transition-all ${
+            canSave
+              ? 'bg-primary text-white active:opacity-80'
+              : 'bg-primary/40 text-white/50 cursor-not-allowed'
+          }`}
+        >
+          Save
+        </button>
       </div>
     </div>
   );
