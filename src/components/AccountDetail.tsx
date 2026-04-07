@@ -6,6 +6,7 @@ import { getInstitution, getInstitutionInitials } from '../utils/institutions';
 import { getFinanceCategoryDef } from '../utils/categories';
 import { computeForecast } from '../utils/forecast';
 import AccountCharts from './AccountCharts';
+import ConfirmDialog from './ui/ConfirmDialog';
 
 interface AccountDetailProps {
   account: Account;
@@ -337,14 +338,11 @@ export default function AccountDetail({
 
         {/* Delete Confirmation */}
         {showDeleteConfirm && (
-          <div className="bg-surface rounded-2xl border border-border p-4 mx-4 mt-4">
-            <p className="text-sm font-semibold text-text-primary text-center">Delete {account.name}?</p>
-            <p className="text-xs text-text-secondary text-center mt-1">This action cannot be undone.</p>
-            <div className="flex gap-3 mt-4">
-              <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 bg-surface-light text-text-primary rounded-xl py-2.5 text-sm font-semibold">Cancel</button>
-              <button onClick={onDelete} className="flex-1 bg-danger text-white rounded-xl py-2.5 text-sm font-semibold">Delete</button>
-            </div>
-          </div>
+          <ConfirmDialog
+            title={`Delete ${account.name}?`}
+            onConfirm={onDelete}
+            onCancel={() => setShowDeleteConfirm(false)}
+          />
         )}
 
         {/* Linked Transactions */}

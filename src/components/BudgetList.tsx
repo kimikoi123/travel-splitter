@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { ArrowLeft, Plus, Pencil, Trash2, ChevronRight } from 'lucide-react';
 import type { Budget } from '../types';
 import type { BudgetWithSpending } from '../hooks/useBudgets';
 import { formatCurrency } from '../utils/currencies';
 import { getPresetInitials } from '../utils/budgetPresets';
+import ConfirmDialog from './ui/ConfirmDialog';
 
 interface BudgetListProps {
   budgets: BudgetWithSpending[];
@@ -95,6 +97,7 @@ export default function BudgetList({
   onDelete,
   onBack,
 }: BudgetListProps) {
+  const [pendingDelete, setPendingDelete] = useState<BudgetWithSpending | null>(null);
   const customBudgets = budgets.filter((b) => b.type === 'custom');
   const categoryBudgets = budgets.filter((b) => b.type === 'category');
   const hasNoBudgets = budgets.length === 0;
@@ -161,7 +164,7 @@ export default function BudgetList({
                 key={budget.id}
                 budget={budget}
                 onEdit={() => onEdit(budget)}
-                onDelete={() => onDelete(budget.id)}
+                onDelete={() => setPendingDelete(budget)}
               />
             ))}
           </div>
@@ -190,7 +193,7 @@ export default function BudgetList({
                 key={budget.id}
                 budget={budget}
                 onEdit={() => onEdit(budget)}
-                onDelete={() => onDelete(budget.id)}
+                onDelete={() => setPendingDelete(budget)}
               />
             ))}
           </div>
@@ -202,6 +205,14 @@ export default function BudgetList({
           </div>
         )}
       </section>
+
+      {pendingDelete && (
+        <ConfirmDialog
+          title={`Delete ${pendingDelete.name}?`}
+          onConfirm={() => { onDelete(pendingDelete.id); setPendingDelete(null); }}
+          onCancel={() => setPendingDelete(null)}
+        />
+      )}
     </div>
   );
 }

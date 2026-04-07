@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { ArrowLeft, Plus, Pencil, Trash2, Link } from 'lucide-react';
 import type { Goal, Account } from '../types';
 import { formatCurrency } from '../utils/currencies';
+import ConfirmDialog from './ui/ConfirmDialog';
 
 interface GoalListProps {
   goals: Goal[];
@@ -112,6 +114,7 @@ export default function GoalList({
   onDelete,
   onBack,
 }: GoalListProps) {
+  const [pendingDelete, setPendingDelete] = useState<Goal | null>(null);
   const hasNoGoals = goals.length === 0;
 
   return (
@@ -162,10 +165,18 @@ export default function GoalList({
               goal={goal}
               accounts={accounts}
               onEdit={() => onEdit(goal)}
-              onDelete={() => onDelete(goal.id)}
+              onDelete={() => setPendingDelete(goal)}
             />
           ))}
         </div>
+      )}
+
+      {pendingDelete && (
+        <ConfirmDialog
+          title={`Delete ${pendingDelete.name}?`}
+          onConfirm={() => { onDelete(pendingDelete.id); setPendingDelete(null); }}
+          onCancel={() => setPendingDelete(null)}
+        />
       )}
     </div>
   );

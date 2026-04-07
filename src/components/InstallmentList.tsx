@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { ArrowLeft, Plus, Pencil, Trash2, CheckCircle, CreditCard } from 'lucide-react';
 import type { Installment, Account } from '../types';
 import { formatCurrency } from '../utils/currencies';
+import ConfirmDialog from './ui/ConfirmDialog';
 
 interface InstallmentListProps {
   installments: Installment[];
@@ -144,6 +146,8 @@ export default function InstallmentList({
   onMarkPaid,
   onBack,
 }: InstallmentListProps) {
+  const [pendingDelete, setPendingDelete] = useState<Installment | null>(null);
+
   return (
     <div className="max-w-2xl mx-auto w-full p-4 sm:p-6 animate-slide-in-right">
       {/* Header */}
@@ -188,11 +192,19 @@ export default function InstallmentList({
               inst={inst}
               accounts={accounts}
               onEdit={() => onEdit(inst)}
-              onDelete={() => onDelete(inst.id)}
+              onDelete={() => setPendingDelete(inst)}
               onMarkPaid={() => onMarkPaid(inst.id)}
             />
           ))}
         </div>
+      )}
+
+      {pendingDelete && (
+        <ConfirmDialog
+          title={`Delete ${pendingDelete.itemName}?`}
+          onConfirm={() => { onDelete(pendingDelete.id); setPendingDelete(null); }}
+          onCancel={() => setPendingDelete(null)}
+        />
       )}
     </div>
   );

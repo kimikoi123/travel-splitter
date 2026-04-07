@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ArrowLeft, Plus, Pencil, Trash2, DollarSign } from 'lucide-react';
 import type { DebtEntry } from '../types';
 import { formatCurrency } from '../utils/currencies';
+import ConfirmDialog from './ui/ConfirmDialog';
 
 interface DebtListProps {
   debts: DebtEntry[];
@@ -198,6 +199,7 @@ export default function DebtList({
   onBack,
 }: DebtListProps) {
   const [filter, setFilter] = useState<FilterValue>('all');
+  const [pendingDelete, setPendingDelete] = useState<DebtEntry | null>(null);
 
   const filtered =
     filter === 'all'
@@ -255,7 +257,7 @@ export default function DebtList({
               key={debt.id}
               debt={debt}
               onEdit={() => onEdit(debt)}
-              onDelete={() => onDelete(debt.id)}
+              onDelete={() => setPendingDelete(debt)}
               onRecordPayment={(amount) => onRecordPayment(debt.id, amount)}
             />
           ))}
@@ -267,6 +269,14 @@ export default function DebtList({
             Tap &ldquo;+ Add&rdquo; to start tracking who owes what.
           </p>
         </div>
+      )}
+
+      {pendingDelete && (
+        <ConfirmDialog
+          title={`Delete debt for ${pendingDelete.personName}?`}
+          onConfirm={() => { onDelete(pendingDelete.id); setPendingDelete(null); }}
+          onCancel={() => setPendingDelete(null)}
+        />
       )}
     </div>
   );
