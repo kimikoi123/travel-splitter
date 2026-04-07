@@ -60,7 +60,7 @@ export default function DebtForm({
           <button
             type="button"
             onClick={onCancel}
-            className="text-sm text-text-secondary active:opacity-60 transition-opacity"
+            className="text-sm text-text-secondary active:opacity-60 transition-opacity min-h-[44px] min-w-[44px] flex items-center"
           >
             Cancel
           </button>
@@ -71,7 +71,7 @@ export default function DebtForm({
             type="button"
             onClick={handleSave}
             disabled={!canSave}
-            className={`text-sm font-semibold transition-opacity ${
+            className={`text-sm font-semibold transition-opacity min-h-[44px] min-w-[44px] flex items-center justify-end ${
               canSave
                 ? 'text-primary active:opacity-60'
                 : 'text-primary opacity-50 cursor-not-allowed'
