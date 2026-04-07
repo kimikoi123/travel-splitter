@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { ArrowLeft, Pencil, Trash2, TrendingUp, Inbox, RefreshCw, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { Pencil, Trash2, TrendingUp, Inbox, RefreshCw, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import type { Account, Transaction } from '../types';
 import { formatCurrency } from '../utils/currencies';
 import { getInstitution, getInstitutionInitials } from '../utils/institutions';
@@ -116,10 +116,7 @@ export default function AccountDetail({
   return (
     <div className="animate-slide-in-right h-full flex flex-col">
       {/* Header Bar */}
-      <div className="sticky top-0 z-10 bg-surface border-b border-border px-4 py-3 flex items-center justify-between">
-        <button onClick={onBack} className="w-10 h-10 rounded-xl bg-surface-light flex items-center justify-center" aria-label="Go back">
-          <ArrowLeft className="w-5 h-5 text-text-primary" />
-        </button>
+      <div className="sticky top-0 z-10 bg-surface border-b border-border px-4 py-3 flex items-center justify-end">
         <div className="flex items-center gap-2">
           <button onClick={onEdit} className="w-10 h-10 rounded-xl bg-surface-light flex items-center justify-center" aria-label="Edit account">
             <Pencil className="w-4 h-4 text-text-primary" />

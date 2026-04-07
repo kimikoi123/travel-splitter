@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { ArrowLeft, Sun, Moon, Monitor, Download, Upload } from 'lucide-react';
+import { Sun, Moon, Monitor, Download, Upload } from 'lucide-react';
 import type { UserPreferences, ThemePreference } from '../types';
 import { CURRENCIES } from '../utils/currencies';
 
@@ -89,20 +89,6 @@ export default function Settings({
 
   return (
     <div className="max-w-2xl mx-auto w-full p-4 sm:p-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <button
-          onClick={onBack}
-          aria-label="Go back"
-          className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl border border-transparent hover:border-border hover:bg-surface-light transition-all text-text-secondary hover:text-text-primary"
-        >
-          <ArrowLeft size={18} />
-        </button>
-        <h1 className="text-xl font-bold text-text-primary" data-heading>
-          Settings
-        </h1>
-      </div>
-
       <div className="flex flex-col gap-6">
         {/* Profile Section */}
         <section>
