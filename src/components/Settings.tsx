@@ -26,7 +26,6 @@ export default function Settings({
   onThemeChange,
   onExport,
   onImport,
-  onBack,
 }: SettingsProps) {
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(preferences.displayName);

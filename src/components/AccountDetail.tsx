@@ -74,7 +74,6 @@ export default function AccountDetail({
   account,
   transactions,
   defaultCurrency,
-  onBack,
   onEdit,
   onDelete,
   onTransfer,
