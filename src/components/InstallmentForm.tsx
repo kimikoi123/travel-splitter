@@ -79,7 +79,7 @@ export default function InstallmentForm({
   return (
     <div className="fixed inset-0 z-50 bg-bg flex flex-col">
       {/* Header */}
-      <div className="flex-shrink-0 border-b border-border/30">
+      <div className="flex-shrink-0 border-b border-border/30" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         <div className="flex items-center justify-between px-4 py-3">
           <button
             type="button"
