@@ -1,4 +1,20 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  TouchSensor,
+  MouseSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import type { DragStartEvent, DragEndEvent } from '@dnd-kit/core';
+import {
+  SortableContext,
+  rectSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Plus, TrendingUp } from 'lucide-react';
 import type { Account } from '../types';
 import { formatCurrency, CURRENCIES } from '../utils/currencies';
@@ -11,6 +27,7 @@ interface WalletTabProps {
   defaultCurrency: string;
   onAddAccount: () => void;
   onSelectAccount: (id: string) => void;
+  onReorderAccounts: (activeId: string, overId: string) => void;
 }
 
 type FilterType = 'all' | 'debit' | 'credit' | 'investments';
@@ -167,15 +184,73 @@ function AccountCard({ account, onSelect }: { account: Account; onSelect: (id: s
   }
 }
 
+function SortableAccountCard({
+  account,
+  onSelect,
+}: {
+  account: Account;
+  onSelect: (id: string) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: account.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <AccountCard account={account} onSelect={onSelect} />
+    </div>
+  );
+}
+
 export default function WalletTab({
   accounts,
   netWorth,
   defaultCurrency,
   onAddAccount,
   onSelectAccount,
+  onReorderAccounts,
 }: WalletTabProps) {
   const [filter, setFilter] = useState<FilterType>('all');
   const filtered = filterAccounts(accounts, filter);
+
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 500, tolerance: 5 },
+    }),
+    useSensor(MouseSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+  );
+
+  const activeAccount = useMemo(
+    () => (activeId ? filtered.find((a) => a.id === activeId) ?? null : null),
+    [activeId, filtered],
+  );
+
+  function handleDragStart(event: DragStartEvent) {
+    setActiveId(String(event.active.id));
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    setActiveId(null);
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      onReorderAccounts(String(active.id), String(over.id));
+    }
+  }
 
   if (accounts.length === 0) {
     return (
@@ -248,12 +323,41 @@ export default function WalletTab({
         ))}
       </div>
 
+      {/* Hint text */}
+      <p className="text-xs text-text-secondary mb-3">
+        Press and hold an account card to rearrange it.
+      </p>
+
       {/* Account Cards Grid */}
-      <div className="grid grid-cols-2 gap-3">
-        {filtered.map((account) => (
-          <AccountCard key={account.id} account={account} onSelect={onSelectAccount} />
-        ))}
-      </div>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={filtered.map((a) => a.id)}
+          strategy={rectSortingStrategy}
+        >
+          <div className="grid grid-cols-2 gap-3">
+            {filtered.map((account) => (
+              <SortableAccountCard
+                key={account.id}
+                account={account}
+                onSelect={onSelectAccount}
+              />
+            ))}
+          </div>
+        </SortableContext>
+
+        <DragOverlay>
+          {activeAccount ? (
+            <div className="scale-105 shadow-xl rounded-2xl">
+              <AccountCard account={activeAccount} onSelect={() => {}} />
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
     </div>
   );
 }
