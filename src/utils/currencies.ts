@@ -26,11 +26,11 @@ export function convertToBase(amount: number, fromCurrency: string, baseCurrency
 
 export function formatCurrency(amount: number, currencyCode: string): string {
   const currency = CURRENCIES[currencyCode];
-  if (!currency) return `${amount.toFixed(2)}`;
+  if (!currency) return `${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   // For currencies with large values, no decimals
   if (['JPY', 'KRW', 'IDR', 'VND'].includes(currencyCode)) {
     return `${currency.symbol}${Math.round(amount).toLocaleString()}`;
   }
-  return `${currency.symbol}${amount.toFixed(2)}`;
+  return `${currency.symbol}${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }

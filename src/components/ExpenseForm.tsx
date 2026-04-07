@@ -129,7 +129,7 @@ export default function ExpenseForm({ members, baseCurrency, customCategories, o
     if (splitType === 'custom') {
       const total = Object.values(customAmounts).reduce((s, v) => s + (v || 0), 0);
       if (Math.abs(total - parsedAmount) > 0.01) {
-        setValidationError(`Custom amounts (${total.toFixed(2)}) must equal the total (${parsedAmount.toFixed(2)})`);
+        setValidationError(`Custom amounts (${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}) must equal the total (${parsedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`);
         return;
       }
     }
@@ -146,7 +146,7 @@ export default function ExpenseForm({ members, baseCurrency, customCategories, o
         }
         if (advAmt > share + 0.01) {
           const memberName = members.find(m => m.id === pid)?.name ?? 'Unknown';
-          setValidationError(`${memberName}'s advance (${advAmt.toFixed(2)}) exceeds their share (${share.toFixed(2)})`);
+          setValidationError(`${memberName}'s advance (${advAmt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}) exceeds their share (${share.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`);
           return;
         }
       }
@@ -370,7 +370,7 @@ export default function ExpenseForm({ members, baseCurrency, customCategories, o
                   {isSelected && <Check size={12} />}
                   {m.name}
                   {isSelected && amount
-                    ? ` (${CURRENCIES[currency]?.symbol ?? ''}${(parseFloat(amount) / participants.length).toFixed(2)})`
+                    ? ` (${CURRENCIES[currency]?.symbol ?? ''}${(parseFloat(amount) / participants.length).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`
                     : ''}
                 </button>
               );
@@ -401,9 +401,9 @@ export default function ExpenseForm({ members, baseCurrency, customCategories, o
             {amount && (
               <p className="text-xs text-text-secondary/50">
                 Assigned: {CURRENCIES[currency]?.symbol}
-                {Object.values(customAmounts).reduce((s, v) => s + (v || 0), 0).toFixed(2)}
+                {Object.values(customAmounts).reduce((s, v) => s + (v || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 {' / '}
-                {CURRENCIES[currency]?.symbol}{parseFloat(amount).toFixed(2)}
+                {CURRENCIES[currency]?.symbol}{parseFloat(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             )}
           </div>

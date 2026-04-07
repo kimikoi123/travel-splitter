@@ -51,8 +51,8 @@ describe('convertToBase', () => {
 });
 
 describe('formatCurrency', () => {
-  it('USD: formatCurrency(1234.56, "USD") returns "$1234.56"', () => {
-    expect(formatCurrency(1234.56, 'USD')).toBe('$1234.56');
+  it('USD: formatCurrency(1234.56, "USD") returns "$1,234.56"', () => {
+    expect(formatCurrency(1234.56, 'USD')).toBe('$1,234.56');
   });
 
   it('EUR: formatCurrency(99.9, "EUR") returns "€99.90"', () => {
