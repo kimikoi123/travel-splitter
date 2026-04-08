@@ -36,6 +36,8 @@ import DebtList from './components/DebtList';
 import DebtForm from './components/DebtForm';
 import InstallmentList from './components/InstallmentList';
 import InstallmentForm from './components/InstallmentForm';
+import CashflowForecast from './components/CashflowForecast';
+import PlannedPayments from './components/PlannedPayments';
 import SettingsScreen from './components/Settings';
 import { useGoals } from './hooks/useGoals';
 import { useDebts } from './hooks/useDebts';
@@ -97,6 +99,8 @@ function App() {
   const [editingDebt, setEditingDebt] = useState<DebtEntry | null>(null);
   const [showInstallmentList, setShowInstallmentList] = useState(false);
   const [showInstallmentForm, setShowInstallmentForm] = useState(false);
+  const [showCashflowForecast, setShowCashflowForecast] = useState(false);
+  const [showPlannedPayments, setShowPlannedPayments] = useState(false);
   const [editingInstallment, setEditingInstallment] = useState<Installment | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [pendingSharedTrip, setPendingSharedTrip] = useState<Trip | null>(null);
@@ -415,7 +419,27 @@ function App() {
           )
         )}
         {!showSettings && activeTab === 'plan' && (
-          showBudgetList ? (
+          showCashflowForecast ? (
+            <CashflowForecast
+              transactions={transactions}
+              installments={installments}
+              debts={debts}
+              accounts={accounts}
+              defaultCurrency={preferences.defaultCurrency}
+              paydayDay={preferences.paydayDay}
+              paydayAmount={preferences.paydayAmount}
+              paydayCurrency={preferences.paydayCurrency}
+              exchangeRates={exchangeRates.rates}
+              onBack={() => setShowCashflowForecast(false)}
+            />
+          ) : showPlannedPayments ? (
+            <PlannedPayments
+              transactions={transactions}
+              onEdit={handleEditTransaction}
+              onDelete={handleDeleteTransaction}
+              onBack={() => setShowPlannedPayments(false)}
+            />
+          ) : showBudgetList ? (
             <BudgetList
               budgets={budgetsWithSpending}
               onCreateCategory={() => { setEditingBudget(null); setShowCreateBudget({ mode: 'category' }); }}
@@ -458,6 +482,7 @@ function App() {
               activeTrip={activeTrip}
               deletedTrips={deletedTrips}
               exchangeRates={exchangeRates}
+              transactions={transactions}
               budgets={budgetsWithSpending}
               goals={goals}
               debts={debts}
@@ -474,6 +499,8 @@ function App() {
               onRemoveExpense={removeExpense}
               onEditExpense={editExpense}
               onUpdateTrip={(updates) => activeTrip && updateTrip(activeTrip.id, updates)}
+              onOpenCashflow={() => setShowCashflowForecast(true)}
+              onOpenPlannedPayments={() => setShowPlannedPayments(true)}
               onOpenBudgets={() => setShowBudgetList(true)}
               onOpenGoals={() => setShowGoalList(true)}
               onOpenDebts={() => setShowDebtList(true)}
@@ -498,7 +525,7 @@ function App() {
         onTabChange={(tab) => {
           setActiveTab(tab);
           if (tab !== 'wallet') setSelectedAccountId(null);
-          if (tab !== 'plan') { setActiveTrip(null); setShowBudgetList(false); setShowGoalList(false); setShowDebtList(false); setShowInstallmentList(false); }
+          if (tab !== 'plan') { setActiveTrip(null); setShowCashflowForecast(false); setShowPlannedPayments(false); setShowBudgetList(false); setShowGoalList(false); setShowDebtList(false); setShowInstallmentList(false); }
         }}
         onFabClick={() => setShowActionMenu(!showActionMenu)}
         fabOpen={showActionMenu}

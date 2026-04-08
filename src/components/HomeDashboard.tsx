@@ -3,6 +3,7 @@ import { TrendingUp } from 'lucide-react';
 import type { Transaction } from '../types';
 import { formatCurrency } from '../utils/currencies';
 import { getFinanceCategoryDef } from '../utils/categories';
+import { getNextOccurrence } from '../utils/forecast';
 
 interface HomeDashboardProps {
   displayName: string;
@@ -40,13 +41,6 @@ function isoDate(d: Date): string {
 }
 
 const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const;
-
-function getNextOccurrence(recurringDay: number): Date {
-  const today = new Date();
-  const thisMonth = new Date(today.getFullYear(), today.getMonth(), recurringDay);
-  if (thisMonth > today) return thisMonth;
-  return new Date(today.getFullYear(), today.getMonth() + 1, recurringDay);
-}
 
 function formatShortDate(date: Date): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });

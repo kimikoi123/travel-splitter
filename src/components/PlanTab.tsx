@@ -1,7 +1,7 @@
-import { BarChart3, Target, Banknote, CreditCard, ChevronRight } from 'lucide-react';
+import { CalendarClock, CalendarRange, BarChart3, Target, Banknote, CreditCard, ChevronRight } from 'lucide-react';
 import TripList from './TripList';
 import TripDashboard from './TripDashboard';
-import type { Trip, DeletedTrip, Member, Expense, Goal, DebtEntry, Installment, ExchangeRates, RateSource } from '../types';
+import type { Trip, DeletedTrip, Member, Expense, Transaction, Goal, DebtEntry, Installment, ExchangeRates, RateSource } from '../types';
 import type { BudgetWithSpending } from '../hooks/useBudgets';
 
 interface ExchangeRateState {
@@ -17,6 +17,7 @@ interface PlanTabProps {
   activeTrip: Trip | null;
   deletedTrips: DeletedTrip[];
   exchangeRates: ExchangeRateState;
+  transactions: Transaction[];
   budgets: BudgetWithSpending[];
   goals: Goal[];
   debts: DebtEntry[];
@@ -33,6 +34,8 @@ interface PlanTabProps {
   onRemoveExpense: (id: string) => void;
   onEditExpense: (id: string, updates: Partial<Expense>) => void;
   onUpdateTrip: (updates: Partial<Trip>) => void;
+  onOpenCashflow: () => void;
+  onOpenPlannedPayments: () => void;
   onOpenBudgets: () => void;
   onOpenGoals: () => void;
   onOpenDebts: () => void;
@@ -45,6 +48,7 @@ export default function PlanTab({
   activeTrip,
   deletedTrips,
   exchangeRates,
+  transactions,
   budgets,
   goals,
   debts,
@@ -61,6 +65,8 @@ export default function PlanTab({
   onRemoveExpense,
   onEditExpense,
   onUpdateTrip,
+  onOpenCashflow,
+  onOpenPlannedPayments,
   onOpenBudgets,
   onOpenGoals,
   onOpenDebts,
@@ -83,7 +89,24 @@ export default function PlanTab({
     );
   }
 
+  const today = new Date().toISOString().split('T')[0] ?? '';
+  const plannedCount = transactions.filter(
+    (t) => (t.isRecurring && t.recurringDay != null) || t.date > today,
+  ).length;
+
   const planItems = [
+    {
+      icon: CalendarClock,
+      label: 'Cashflow forecast',
+      desc: 'Upcoming payments vs expected income',
+      onClick: onOpenCashflow,
+    },
+    {
+      icon: CalendarRange,
+      label: 'Planned payments',
+      desc: plannedCount === 0 ? 'Recurring and scheduled transactions' : `${plannedCount} planned payment${plannedCount !== 1 ? 's' : ''}`,
+      onClick: onOpenPlannedPayments,
+    },
     {
       icon: BarChart3,
       label: 'Category budgets',
