@@ -91,7 +91,7 @@ export default function PlanTab({
 
   const today = new Date().toISOString().split('T')[0] ?? '';
   const plannedCount = transactions.filter(
-    (t) => (t.isRecurring && t.recurringDay != null) || t.date > today,
+    (t) => t.isRecurring || t.date > today,
   ).length;
 
   const planItems = [

@@ -3,7 +3,7 @@ import { ArrowLeft, Pencil, Trash2, RefreshCw, CalendarDays } from 'lucide-react
 import type { Transaction } from '../types';
 import { formatCurrency } from '../utils/currencies';
 import { getFinanceCategoryDef } from '../utils/categories';
-import { getNextOccurrence } from '../utils/forecast';
+import { getNextRecurringDate, formatRecurringLabel } from '../utils/forecast';
 
 interface PlannedPaymentsProps {
   transactions: Transaction[];
@@ -55,8 +55,9 @@ export default function PlannedPayments({
     const sched: Transaction[] = [];
 
     for (const t of transactions) {
-      if (t.isRecurring && t.recurringDay != null) {
-        rec.push({ ...t, nextDate: getNextOccurrence(t.recurringDay) });
+      if (t.isRecurring) {
+        const next = getNextRecurringDate(t);
+        if (next) rec.push({ ...t, nextDate: next });
       } else if (t.date > today) {
         sched.push(t);
       }
@@ -168,7 +169,7 @@ export default function PlannedPayments({
                           </p>
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className="text-xs text-text-secondary">
-                              Every month on day {txn.recurringDay}
+                              {formatRecurringLabel(txn)}
                             </span>
                             <span className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-md font-semibold">
                               RECURRING
@@ -185,9 +186,12 @@ export default function PlannedPayments({
                         </p>
                       </div>
                       <div className="flex items-center justify-between mt-3 pt-3 border-t border-border-subtle">
-                        <p className="text-xs text-text-secondary">
-                          Next: {formatDate(txn.nextDate)}
-                        </p>
+                        <div className="text-xs text-text-secondary">
+                          <span>Next: {formatDate(txn.nextDate)}</span>
+                          {txn.recurringEndDate && (
+                            <span className="ml-2 text-text-secondary/60">Ends: {txn.recurringEndDate}</span>
+                          )}
+                        </div>
                         <div className="flex gap-1">
                           <button
                             type="button"

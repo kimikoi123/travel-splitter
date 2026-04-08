@@ -3,7 +3,7 @@ import { TrendingUp } from 'lucide-react';
 import type { Transaction } from '../types';
 import { formatCurrency } from '../utils/currencies';
 import { getFinanceCategoryDef } from '../utils/categories';
-import { getNextOccurrence } from '../utils/forecast';
+import { getNextRecurringDate } from '../utils/forecast';
 
 interface HomeDashboardProps {
   displayName: string;
@@ -164,15 +164,13 @@ export default function HomeDashboard({
 
   // --- Upcoming recurring transactions ---
   const upcomingRecurring = useMemo(() => {
-    const recurringTxns = transactions.filter(
-      (t) => t.isRecurring && t.recurringDay != null,
-    );
+    const recurringTxns = transactions.filter((t) => t.isRecurring);
     if (recurringTxns.length === 0) return null;
 
-    const withNext = recurringTxns.map((t) => ({
-      txn: t,
-      nextDate: getNextOccurrence(t.recurringDay!),
-    }));
+    const withNext = recurringTxns
+      .map((t) => ({ txn: t, nextDate: getNextRecurringDate(t) }))
+      .filter((r): r is { txn: Transaction; nextDate: Date } => r.nextDate !== null);
+    if (withNext.length === 0) return null;
     withNext.sort((a, b) => a.nextDate.getTime() - b.nextDate.getTime());
 
     const top = withNext.slice(0, 5);

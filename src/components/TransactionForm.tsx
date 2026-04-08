@@ -1,9 +1,22 @@
 import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, X } from 'lucide-react';
 import { CURRENCIES } from '../utils/currencies';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../utils/categories';
 import type { FinanceCategoryDef } from '../utils/categories';
-import type { Account, Budget, Transaction } from '../types';
+import type { Account, Budget, Transaction, RecurringFrequency } from '../types';
+
+const FREQUENCY_OPTIONS: { value: RecurringFrequency; label: string }[] = [
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'biweekly', label: 'Biweekly' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'quarterly', label: 'Quarterly' },
+  { value: 'yearly', label: 'Yearly' },
+  { value: 'custom', label: 'Custom' },
+];
+
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 interface TransactionFormProps {
   type: 'income' | 'expense';
@@ -21,7 +34,12 @@ interface TransactionFormProps {
     accountId?: string;
     budgetId?: string;
     isRecurring?: boolean;
+    recurringFrequency?: RecurringFrequency;
     recurringDay?: number;
+    recurringDayOfWeek?: number;
+    recurringMonth?: number;
+    recurringCustomDates?: string[];
+    recurringEndDate?: string;
   }) => void;
   onCancel: () => void;
 }
@@ -46,7 +64,14 @@ export default function TransactionForm({
   const [accountId, setAccountId] = useState<string | undefined>(editingTransaction?.accountId);
   const [budgetId, setBudgetId] = useState<string | undefined>(editingTransaction?.budgetId);
   const [isRecurring, setIsRecurring] = useState(editingTransaction?.isRecurring ?? false);
+  const [recurringFrequency, setRecurringFrequency] = useState<RecurringFrequency>(editingTransaction?.recurringFrequency ?? 'monthly');
   const [recurringDay, setRecurringDay] = useState(editingTransaction?.recurringDay ?? (() => new Date().getDate()));
+  const [recurringDayOfWeek, setRecurringDayOfWeek] = useState(editingTransaction?.recurringDayOfWeek ?? (() => new Date().getDay()));
+  const [recurringMonth, setRecurringMonth] = useState(editingTransaction?.recurringMonth ?? (() => new Date().getMonth() + 1));
+  const [recurringCustomDates, setRecurringCustomDates] = useState<string[]>(editingTransaction?.recurringCustomDates ?? []);
+  const [customDateInput, setCustomDateInput] = useState('');
+  const [recurringEndDate, setRecurringEndDate] = useState<string | undefined>(editingTransaction?.recurringEndDate);
+  const [repeatsForever, setRepeatsForever] = useState(!editingTransaction?.recurringEndDate);
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
   const isEditing = !!editingTransaction;
 
@@ -55,6 +80,7 @@ export default function TransactionForm({
 
   const handleSave = () => {
     if (!canSave) return;
+    const freq = isRecurring ? recurringFrequency : undefined;
     onSave({
       type,
       amount: parsedAmount,
@@ -65,7 +91,12 @@ export default function TransactionForm({
       accountId,
       budgetId,
       isRecurring: isRecurring || undefined,
-      recurringDay: isRecurring ? recurringDay : undefined,
+      recurringFrequency: freq,
+      recurringDay: isRecurring && (freq === 'monthly' || freq === 'quarterly' || freq === 'yearly') ? recurringDay : undefined,
+      recurringDayOfWeek: isRecurring && (freq === 'weekly' || freq === 'biweekly') ? recurringDayOfWeek : undefined,
+      recurringMonth: isRecurring && freq === 'yearly' ? recurringMonth : undefined,
+      recurringCustomDates: isRecurring && freq === 'custom' && recurringCustomDates.length > 0 ? recurringCustomDates : undefined,
+      recurringEndDate: isRecurring && !repeatsForever ? recurringEndDate : undefined,
     });
   };
 
@@ -248,11 +279,11 @@ export default function TransactionForm({
             </div>
           )}
 
-          {/* Repeat monthly toggle */}
+          {/* Recurring toggle */}
           <div className="flex items-center justify-between py-3">
             <div>
-              <div className="text-sm font-medium text-text-primary">Repeat monthly</div>
-              <div className="text-xs text-text-secondary">This transaction repeats every month</div>
+              <div className="text-sm font-medium text-text-primary">Recurring</div>
+              <div className="text-xs text-text-secondary">This transaction repeats</div>
             </div>
             <button
               type="button"
@@ -271,22 +302,187 @@ export default function TransactionForm({
             </button>
           </div>
 
-          {/* Day of month (when recurring) */}
           {isRecurring && (
-            <div>
-              <div className="text-[11px] text-text-secondary font-semibold uppercase tracking-wider mb-1.5">DAY OF MONTH</div>
-              <input
-                type="number"
-                min={1}
-                max={31}
-                value={recurringDay}
-                onChange={(e) => {
-                  const v = parseInt(e.target.value, 10);
-                  if (v >= 1 && v <= 31) setRecurringDay(v);
-                }}
-                aria-label="Day of month for recurring transaction"
-                className="w-full bg-surface border border-border rounded-xl py-3 px-4 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/40 transition-all [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-              />
+            <div className="space-y-4">
+              {/* Frequency picker */}
+              <div>
+                <div className="text-[11px] text-text-secondary font-semibold uppercase tracking-wider mb-1.5">FREQUENCY</div>
+                <div className="flex flex-wrap gap-2">
+                  {FREQUENCY_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setRecurringFrequency(opt.value)}
+                      className={`px-3 py-1.5 rounded-xl text-sm transition-all ${
+                        recurringFrequency === opt.value
+                          ? 'bg-primary text-white font-medium'
+                          : 'bg-surface-light border border-border text-text-secondary hover:text-text-primary'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Day of week (weekly / biweekly) */}
+              {(recurringFrequency === 'weekly' || recurringFrequency === 'biweekly') && (
+                <div>
+                  <div className="text-[11px] text-text-secondary font-semibold uppercase tracking-wider mb-1.5">DAY OF WEEK</div>
+                  <div className="flex gap-1.5">
+                    {DAY_LABELS.map((label, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setRecurringDayOfWeek(i)}
+                        className={`flex-1 py-2 rounded-xl text-xs font-medium transition-all ${
+                          recurringDayOfWeek === i
+                            ? 'bg-primary text-white'
+                            : 'bg-surface-light border border-border text-text-secondary hover:text-text-primary'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Day of month (monthly / quarterly) */}
+              {(recurringFrequency === 'monthly' || recurringFrequency === 'quarterly') && (
+                <div>
+                  <div className="text-[11px] text-text-secondary font-semibold uppercase tracking-wider mb-1.5">DAY OF MONTH</div>
+                  <input
+                    type="number"
+                    min={1}
+                    max={31}
+                    value={recurringDay}
+                    onChange={(e) => {
+                      const v = parseInt(e.target.value, 10);
+                      if (v >= 1 && v <= 31) setRecurringDay(v);
+                    }}
+                    aria-label="Day of month for recurring transaction"
+                    className="w-full bg-surface border border-border rounded-xl py-3 px-4 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/40 transition-all [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  />
+                </div>
+              )}
+
+              {/* Month + Day (yearly) */}
+              {recurringFrequency === 'yearly' && (
+                <div className="space-y-3">
+                  <div>
+                    <div className="text-[11px] text-text-secondary font-semibold uppercase tracking-wider mb-1.5">MONTH</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {MONTH_LABELS.map((label, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setRecurringMonth(i + 1)}
+                          className={`px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                            recurringMonth === i + 1
+                              ? 'bg-primary text-white'
+                              : 'bg-surface-light border border-border text-text-secondary hover:text-text-primary'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-text-secondary font-semibold uppercase tracking-wider mb-1.5">DAY</div>
+                    <input
+                      type="number"
+                      min={1}
+                      max={31}
+                      value={recurringDay}
+                      onChange={(e) => {
+                        const v = parseInt(e.target.value, 10);
+                        if (v >= 1 && v <= 31) setRecurringDay(v);
+                      }}
+                      aria-label="Day of month"
+                      className="w-full bg-surface border border-border rounded-xl py-3 px-4 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/40 transition-all [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Custom dates */}
+              {recurringFrequency === 'custom' && (
+                <div>
+                  <div className="text-[11px] text-text-secondary font-semibold uppercase tracking-wider mb-1.5">DATES</div>
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      type="date"
+                      value={customDateInput}
+                      onChange={(e) => setCustomDateInput(e.target.value)}
+                      className="flex-1 bg-surface border border-border rounded-xl py-2.5 px-4 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/40 transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (customDateInput && !recurringCustomDates.includes(customDateInput)) {
+                          setRecurringCustomDates([...recurringCustomDates, customDateInput].sort());
+                          setCustomDateInput('');
+                        }
+                      }}
+                      className="px-4 py-2.5 rounded-xl text-sm font-medium bg-primary text-white transition-all active:opacity-80"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  {recurringCustomDates.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {recurringCustomDates.map((d) => (
+                        <span key={d} className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface-light border border-border rounded-lg text-xs text-text-primary">
+                          {d}
+                          <button
+                            type="button"
+                            onClick={() => setRecurringCustomDates(recurringCustomDates.filter((x) => x !== d))}
+                            className="text-text-secondary hover:text-danger transition-colors"
+                          >
+                            <X size={12} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* End date */}
+              <div>
+                <div className="flex items-center justify-between py-2">
+                  <div className="text-sm text-text-primary">Repeats forever</div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRepeatsForever(!repeatsForever);
+                      if (!repeatsForever) setRecurringEndDate(undefined);
+                    }}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      repeatsForever ? 'bg-primary' : 'bg-border'
+                    }`}
+                    role="switch"
+                    aria-checked={repeatsForever}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
+                        repeatsForever ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+                {!repeatsForever && (
+                  <input
+                    type="date"
+                    value={recurringEndDate ?? ''}
+                    onChange={(e) => setRecurringEndDate(e.target.value || undefined)}
+                    aria-label="Recurring end date"
+                    className="w-full bg-surface border border-border rounded-xl py-3 px-4 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/40 transition-all mt-2"
+                  />
+                )}
+              </div>
             </div>
           )}
         </div>

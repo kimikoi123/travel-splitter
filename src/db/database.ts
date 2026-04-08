@@ -99,6 +99,20 @@ class SplitTripDB extends Dexie {
       debts: 'id, direction',
       installments: 'id',
     });
+    this.version(8).stores({
+      trips: 'id',
+      meta: 'key',
+      rateCache: 'key',
+      deletedTrips: 'id',
+      receiptPhotos: 'expenseId',
+      transactions: 'id, date, type',
+      userPreferences: 'id',
+      accounts: 'id, type, sortOrder',
+      budgets: 'id, type',
+      goals: 'id',
+      debts: 'id, direction',
+      installments: 'id',
+    });
   }
 }
 

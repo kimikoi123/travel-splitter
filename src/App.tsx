@@ -147,7 +147,7 @@ function App() {
     setShowAddAccountFlow(true);
   }, []);
 
-  const handleSaveTransaction = useCallback(async (txn: { type: 'income' | 'expense'; amount: number; currency: string; category: string; description: string; date: string; accountId?: string }) => {
+  const handleSaveTransaction = useCallback(async (txn: Omit<Transaction, 'id' | 'createdAt'>) => {
     if (editingTransaction) {
       await editTransaction(editingTransaction.id, txn);
       setEditingTransaction(null);

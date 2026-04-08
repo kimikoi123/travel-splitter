@@ -66,6 +66,8 @@ export interface TripState {
 }
 
 // Personal finance types
+export type RecurringFrequency = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly' | 'custom';
+
 export interface Transaction {
   id: string;
   type: 'income' | 'expense';
@@ -77,7 +79,12 @@ export interface Transaction {
   createdAt: string;
   accountId?: string;
   isRecurring?: boolean;
-  recurringDay?: number;    // day of month (1-31)
+  recurringFrequency?: RecurringFrequency; // defaults to 'monthly' when absent
+  recurringDay?: number;        // day of month 1-31 (monthly/quarterly/yearly)
+  recurringDayOfWeek?: number;  // 0=Sun..6=Sat (weekly/biweekly)
+  recurringMonth?: number;      // 1-12 (yearly)
+  recurringCustomDates?: string[]; // ISO date strings (custom)
+  recurringEndDate?: string;    // optional end date
   transferId?: string;      // links paired transfer transactions
   budgetId?: string;
 }
