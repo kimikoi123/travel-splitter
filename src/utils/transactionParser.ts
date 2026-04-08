@@ -70,7 +70,7 @@ function extractAmount(input: string): { amount: number; remaining: string } | n
   // Try "k" suffix first (e.g., "30k", "1.5k")
   const kMatch = input.match(AMOUNT_K_REGEX);
   if (kMatch) {
-    const amount = parseFloat(kMatch[1]) * 1000;
+    const amount = parseFloat(kMatch[1]!) * 1000;
     const remaining = input.replace(kMatch[0], '').trim();
     return { amount, remaining };
   }

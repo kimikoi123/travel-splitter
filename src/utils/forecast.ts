@@ -99,7 +99,6 @@ export function getRecurringOccurrences(
       // Anchor quarter from the transaction date
       const txnDate = new Date(txn.date);
       const anchorMonth = txnDate.getMonth();
-      const start = new Date(windowStart.getFullYear(), windowStart.getMonth(), 1);
       // Go back far enough to find the right quarter phase
       for (let m = anchorMonth - 12; m < anchorMonth + 48; m += 3) {
         const y = txnDate.getFullYear();
@@ -143,7 +142,7 @@ export function getNextRecurringDate(txn: Transaction): Date | null {
   const farFuture = new Date(today);
   farFuture.setFullYear(farFuture.getFullYear() + 1);
   const occ = getRecurringOccurrences(txn, today, farFuture);
-  return occ.length > 0 ? occ[0] : null;
+  return occ[0] ?? null;
 }
 
 export function formatRecurringLabel(txn: Transaction): string {
