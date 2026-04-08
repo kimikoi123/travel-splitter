@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { ChevronDown, X } from 'lucide-react';
 import { CURRENCIES } from '../utils/currencies';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../utils/categories';
 import { parseAmountInput, isKNotation } from '../utils/amountParser';
+import ReceiptScanner from './ReceiptScanner';
+import type { ScanResult } from './ReceiptScanner';
 import type { FinanceCategoryDef } from '../utils/categories';
 import type { Account, Budget, Transaction, RecurringFrequency } from '../types';
 
@@ -83,6 +85,16 @@ export default function TransactionForm({
   const [repeatsForever, setRepeatsForever] = useState(!editingTransaction?.recurringEndDate);
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
   const isEditing = !!editingTransaction;
+
+  const handleScanApply = useCallback((result: ScanResult) => {
+    if (result.amount) setAmount(result.amount);
+    if (result.description) setDescription(result.description);
+    if (result.date) setDate(result.date);
+    if (result.category) {
+      const validCat = categories.find((c) => c.value === result.category);
+      if (validCat) setCategory(validCat.value);
+    }
+  }, [categories]);
 
   const parsedAmount = parseAmountInput(amount);
   const canSave = parsedAmount > 0;
@@ -246,6 +258,12 @@ export default function TransactionForm({
               className="w-full bg-surface border border-border rounded-xl py-3 px-4 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/40 transition-all"
             />
           </div>
+
+          {/* Receipt Scanner */}
+          <ReceiptScanner
+            onApply={handleScanApply}
+            showPhoto={false}
+          />
 
           {/* Account selector */}
           {accounts && accounts.length > 0 && (

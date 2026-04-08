@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, Check, X, Camera, Trash2 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Plus, Check, X } from 'lucide-react';
 import { CURRENCIES } from '../utils/currencies';
 import { getAllCategories, toSlug } from '../utils/categories';
-import { compressImage } from '../utils/imageUtils';
 import { parseAmountInput } from '../utils/amountParser';
 import { getReceiptPhoto } from '../db/storage';
 import InlineAlert from './ui/InlineAlert';
+import ReceiptScanner from './ReceiptScanner';
+import type { ScanResult } from './ReceiptScanner';
 import type { Member, Expense, SplitType } from '../types';
 
 interface ExpenseFormProps {
@@ -41,7 +42,6 @@ export default function ExpenseForm({ members, baseCurrency, customCategories, o
   const [newCategoryName, setNewCategoryName] = useState('');
   const [receiptPhoto, setReceiptPhoto] = useState<string | null>(null);
   const [receiptRemoved, setReceiptRemoved] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const dismissValidation = useCallback(() => setValidationError(null), []);
 
   useEffect(() => {
@@ -73,25 +73,18 @@ export default function ExpenseForm({ members, baseCurrency, customCategories, o
     setNewCategoryName('');
   };
 
-  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const dataUrl = await compressImage(file);
-      setReceiptPhoto(dataUrl);
-      setReceiptRemoved(false);
-      if (!isEditing) onPendingReceipt?.(dataUrl);
-    } catch {
-      setValidationError('Failed to process image');
-    }
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
+  const handleReceiptPhotoChange = useCallback((dataUrl: string | null) => {
+    setReceiptPhoto(dataUrl);
+    setReceiptRemoved(dataUrl === null);
+    if (!isEditing) onPendingReceipt?.(dataUrl);
+  }, [isEditing, onPendingReceipt]);
 
-  const handleRemovePhoto = () => {
-    setReceiptPhoto(null);
-    setReceiptRemoved(true);
-    if (!isEditing) onPendingReceipt?.(null);
-  };
+  const handleScanApply = useCallback((result: ScanResult) => {
+    if (result.amount) setAmount(result.amount);
+    if (result.description) setDescription(result.description);
+    if (result.date) setDate(result.date);
+    if (result.category) setCategory(result.category);
+  }, []);
 
   const toggleParticipant = (id: string) => {
     setParticipants((prev) => {
@@ -265,45 +258,13 @@ export default function ExpenseForm({ members, baseCurrency, customCategories, o
         />
       </div>
 
-      {/* Receipt Photo */}
-      <div className="pt-3 border-t border-border/20">
-        <label className="text-[10px] font-medium text-text-secondary/50 uppercase tracking-widest mb-2.5 block" data-heading>Receipt photo</label>
-        {receiptPhoto ? (
-          <div className="relative inline-block">
-            <img
-              src={receiptPhoto}
-              alt="Receipt"
-              className="w-24 h-24 object-cover rounded-xl border border-border/40"
-            />
-            <button
-              type="button"
-              onClick={handleRemovePhoto}
-              className="absolute -top-2 -right-2 p-1.5 bg-danger rounded-full text-white hover:bg-danger/80 transition-all shadow-sm"
-              aria-label="Remove receipt photo"
-            >
-              <Trash2 size={10} />
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-4 bg-surface-light/40 border border-dashed border-border/40 rounded-xl text-sm text-text-secondary/40 hover:text-text-secondary hover:border-primary/30 transition-all"
-          >
-            <Camera size={16} />
-            Add receipt
-          </button>
-        )}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          onChange={handlePhotoSelect}
-          className="hidden"
-          aria-label="Upload receipt photo"
-        />
-      </div>
+      {/* Receipt Scanner */}
+      <ReceiptScanner
+        onApply={handleScanApply}
+        onPhotoChange={handleReceiptPhotoChange}
+        initialPhoto={receiptPhoto}
+        showPhoto
+      />
 
       {/* Paid By */}
       <div className="pt-3 border-t border-border/20">

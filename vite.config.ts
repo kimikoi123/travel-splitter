@@ -47,6 +47,20 @@ export default defineConfig({
               },
             },
           },
+          {
+            urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/npm\/tesseract/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'tesseract-data',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 90,
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
         ],
       },
     }),

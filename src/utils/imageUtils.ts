@@ -2,6 +2,10 @@
  * Compress and resize an image file to a JPEG data URL.
  * Uses canvas API to limit dimensions and reduce file size.
  */
+export function compressImageForOcr(file: File): Promise<string> {
+  return compressImage(file, 1536, 0.85);
+}
+
 export function compressImage(file: File, maxDimension = 1024, quality = 0.7): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
