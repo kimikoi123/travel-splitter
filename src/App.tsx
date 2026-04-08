@@ -521,7 +521,9 @@ function App() {
         {!showSettings && activeTab === 'history' && (
           <HistoryTab
             transactions={transactions}
+            accounts={accounts}
             defaultCurrency={preferences.defaultCurrency}
+            displayName={preferences.displayName}
             onEdit={handleEditTransaction}
             onDelete={handleDeleteTransaction}
             showToast={showToast}

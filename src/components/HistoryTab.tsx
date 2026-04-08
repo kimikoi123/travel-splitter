@@ -1,12 +1,15 @@
 import { useState, useMemo } from 'react';
-import { Search, X, Inbox, Pencil, Trash2 } from 'lucide-react';
-import type { Transaction } from '../types';
+import { Search, X, Inbox, Pencil, Trash2, Download } from 'lucide-react';
+import type { Transaction, Account } from '../types';
 import { formatCurrency } from '../utils/currencies';
 import { getFinanceCategoryDef } from '../utils/categories';
+import ExportSheet from './ExportSheet';
 
 interface HistoryTabProps {
   transactions: Transaction[];
+  accounts: Account[];
   defaultCurrency: string;
+  displayName: string;
   onEdit?: (transaction: Transaction) => void;
   onDelete?: (id: string) => void;
   showToast?: (message: string, onCommit: () => void) => string;
@@ -25,10 +28,11 @@ function getDateLabel(dateStr: string, todayStr: string, yesterdayStr: string): 
   return `${weekday}, ${month} ${day}`;
 }
 
-export default function HistoryTab({ transactions, defaultCurrency, onEdit, onDelete, showToast }: HistoryTabProps) {
+export default function HistoryTab({ transactions, accounts, defaultCurrency, displayName, onEdit, onDelete, showToast }: HistoryTabProps) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
   const [pendingDeletes, setPendingDeletes] = useState<Set<string>>(new Set());
+  const [showExportSheet, setShowExportSheet] = useState(false);
 
   const handleDelete = (t: Transaction) => {
     if (!onDelete || !showToast) return;
@@ -95,9 +99,21 @@ export default function HistoryTab({ transactions, defaultCurrency, onEdit, onDe
   return (
     <div className="max-w-2xl mx-auto w-full p-4 sm:p-6 animate-fade-in">
       {/* Header */}
-      <h1 className="text-2xl font-bold text-text-primary tracking-tight" data-heading>
-        History
-      </h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-text-primary tracking-tight" data-heading>
+          History
+        </h1>
+        {transactions.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowExportSheet(true)}
+            aria-label="Export statement"
+            className="w-9 h-9 flex items-center justify-center rounded-xl text-text-secondary hover:text-primary active:opacity-60 transition-colors"
+          >
+            <Download size={18} />
+          </button>
+        )}
+      </div>
 
       {/* Search bar */}
       <div className="mt-4 bg-surface border border-border rounded-xl flex items-center px-4 gap-2.5">
@@ -240,6 +256,16 @@ export default function HistoryTab({ transactions, defaultCurrency, onEdit, onDe
             </div>
           ))}
         </div>
+      )}
+
+      {showExportSheet && (
+        <ExportSheet
+          transactions={transactions}
+          accounts={accounts}
+          defaultCurrency={defaultCurrency}
+          displayName={displayName}
+          onClose={() => setShowExportSheet(false)}
+        />
       )}
     </div>
   );
