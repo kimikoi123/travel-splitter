@@ -5,6 +5,7 @@ import { formatCurrency } from '../utils/currencies';
 import { getFinanceCategoryDef } from '../utils/categories';
 import { getNextRecurringDate } from '../utils/forecast';
 import QuickAddBar from './QuickAddBar';
+import SpendingHeatmap from './SpendingHeatmap';
 import type { ParsedTransaction } from '../utils/transactionParser';
 
 interface HomeDashboardProps {
@@ -350,6 +351,12 @@ export default function HomeDashboard({
           <p className="text-xs text-text-secondary">earned</p>
         </div>
       </div>
+
+      {/* Spending Heatmap */}
+      <SpendingHeatmap
+        transactions={currencyTxns}
+        defaultCurrency={defaultCurrency}
+      />
 
       {/* Upcoming Recurring */}
       {upcomingRecurring != null && (
