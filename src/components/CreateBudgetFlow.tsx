@@ -340,7 +340,7 @@ function CategoryBudgetForm({
           autoFocus={isEditing}
         />
         {isKNotation(amount) && (
-          <p className="text-[11px] text-primary/70 mt-1">= {parsedAmount.toLocaleString()}</p>
+          <p className="text-[11px] text-primary/70 mt-1">= {parseAmountInput(amount).toLocaleString()}</p>
         )}
       </div>
 
@@ -469,7 +469,7 @@ function CustomBudgetForm({
           autoFocus={!isCustomEntry}
         />
         {isKNotation(amount) && (
-          <p className="text-[11px] text-primary/70 mt-1">= {parsedAmount.toLocaleString()}</p>
+          <p className="text-[11px] text-primary/70 mt-1">= {parseAmountInput(amount).toLocaleString()}</p>
         )}
       </div>
 

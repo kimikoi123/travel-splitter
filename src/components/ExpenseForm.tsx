@@ -3,7 +3,7 @@ import { Plus, Check, X, Camera, Trash2 } from 'lucide-react';
 import { CURRENCIES } from '../utils/currencies';
 import { getAllCategories, toSlug } from '../utils/categories';
 import { compressImage } from '../utils/imageUtils';
-import { parseAmountInput, isKNotation } from '../utils/amountParser';
+import { parseAmountInput } from '../utils/amountParser';
 import { getReceiptPhoto } from '../db/storage';
 import InlineAlert from './ui/InlineAlert';
 import type { Member, Expense, SplitType } from '../types';
