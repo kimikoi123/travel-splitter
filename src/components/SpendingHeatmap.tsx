@@ -155,7 +155,7 @@ export default function SpendingHeatmap({
         </p>
 
         {/* Weekday headers */}
-        <div className="grid grid-cols-7 gap-1 mb-1">
+        <div className="grid grid-cols-7 gap-0.5 sm:gap-1 mb-1">
           {DAY_LABELS.map((label, i) => (
             <div
               key={i}
@@ -167,7 +167,7 @@ export default function SpendingHeatmap({
         </div>
 
         {/* Calendar grid */}
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
           {/* Empty offset cells */}
           {Array.from({ length: firstDayOffset }, (_, i) => (
             <div key={`empty-${i}`} />

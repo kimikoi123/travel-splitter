@@ -179,7 +179,7 @@ export default function CashflowForecast({
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6">
         <div className="bg-surface rounded-2xl border border-border p-3 text-center">
           <p className="text-[10px] font-semibold text-text-secondary tracking-wider mb-1">
             EXPECTED IN

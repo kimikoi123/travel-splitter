@@ -231,7 +231,7 @@ export default function HomeDashboard({
       {onQuickAdd && <QuickAddBar onParsed={onQuickAdd} />}
 
       {/* 2. Spending Summary Row */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
         {/* Left card — Last 7 Days bar chart */}
         <div className="bg-surface rounded-2xl border border-border p-4">
           <p className="text-[10px] font-semibold text-text-secondary tracking-wider mb-3">
@@ -331,7 +331,7 @@ export default function HomeDashboard({
       )}
 
       {/* 3. Monthly Summary Cards */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
         <div className="bg-surface rounded-2xl border border-border p-4 text-center">
           <p className="text-[10px] font-semibold text-text-secondary tracking-wider mb-1">
             THIS MONTH

@@ -410,7 +410,7 @@ function StepTemplateSelection({
             <h3 className="text-[11px] text-text-secondary font-semibold uppercase tracking-wider mb-3">
               {group.label}
             </h3>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {templates.map((template) => {
                 const inst = template.institutionKey
                   ? getInstitution(template.institutionKey)
@@ -517,7 +517,7 @@ function StepInstitutionGrid({
           ? 'Select your bank or e-wallet'
           : 'Select the card issuer'}
       </p>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {institutions.map((inst) => (
           <button
             key={inst.key}

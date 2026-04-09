@@ -156,7 +156,7 @@ export default function AccountDetail({
         {/* Spendable + Forecast (non-investment only) */}
         {forecast && (
           <>
-            <div className="grid grid-cols-2 gap-3 mx-4 mt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mx-4 mt-4">
               <div className="bg-surface rounded-2xl border border-border p-4">
                 <p className="text-[10px] uppercase tracking-wider text-text-secondary font-semibold">Net Balance</p>
                 <p className="text-lg font-bold text-text-primary mt-1">
@@ -173,7 +173,7 @@ export default function AccountDetail({
 
             <div className="bg-surface rounded-2xl border border-border p-4 mx-4 mt-3">
               <p className="text-sm font-semibold text-text-primary mb-3">Next 30 days</p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="bg-surface-light rounded-xl p-3">
                   <div className="flex items-center gap-1.5 mb-1">
                     <ArrowDownLeft size={12} className="text-success" />

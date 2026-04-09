@@ -80,7 +80,7 @@ export default function ExportSheet({
 
       {/* Sheet */}
       <div
-        className="relative w-full max-w-lg bg-surface rounded-t-2xl border border-border border-b-0 p-5 pb-8 animate-scale-in"
+        className="relative w-full max-w-lg bg-surface rounded-t-2xl border border-border border-b-0 p-4 sm:p-5 pb-8 animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

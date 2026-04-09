@@ -177,7 +177,7 @@ export default function TransactionForm({
                   className="fixed inset-0 z-10"
                   onClick={() => setShowCurrencyDropdown(false)}
                 />
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-20 bg-surface border border-border rounded-xl shadow-lg max-h-60 overflow-y-auto min-w-[180px]">
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-20 bg-surface border border-border rounded-xl shadow-lg max-h-60 overflow-y-auto min-w-[160px] sm:min-w-[180px]">
                   {Object.entries(CURRENCIES).map(([code, config]) => (
                     <button
                       key={code}
