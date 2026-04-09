@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { ArrowLeft, X, Check, ChevronRight } from 'lucide-react';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 import type { Budget } from '../types';
 import { EXPENSE_CATEGORIES } from '../utils/categories';
 import type { FinanceCategoryDef } from '../utils/categories';
@@ -30,6 +31,8 @@ export default function CreateBudgetFlow({
   onCancel,
   editingBudget,
 }: CreateBudgetFlowProps) {
+  useEscapeKey(onCancel);
+
   const isEditing = !!editingBudget;
 
   // Determine initial step
@@ -376,7 +379,7 @@ function PresetGrid({
                 key={preset.key}
                 type="button"
                 onClick={() => onSelectPreset(preset)}
-                className="flex flex-col items-center gap-2 bg-surface rounded-2xl border border-border p-4 active:scale-[0.96] transition-transform"
+                className="flex flex-col items-center gap-2 bg-surface rounded-2xl border border-border p-4 active:scale-[0.98] transition-transform"
               >
                 <LogoBadge logo={preset.logo} name={preset.name} color={preset.color} size="lg" />
                 <span className="text-xs text-text-primary text-center leading-tight font-medium truncate w-full">

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 import { parseAmountInput, isKNotation } from '../utils/amountParser';
 import {
   ArrowLeft,
@@ -99,6 +100,8 @@ export default function AddAccountFlow({
   onCancel,
   editingAccount,
 }: AddAccountFlowProps) {
+  useEscapeKey(onCancel);
+
   // If editing, start at step 4 directly (skip template + type + institution)
   const initialStep = editingAccount ? 4 : 1;
 
@@ -420,7 +423,7 @@ function StepTemplateSelection({
                     key={template.key}
                     type="button"
                     onClick={() => onSelectTemplate(template)}
-                    className="flex flex-col items-center gap-2 bg-surface rounded-2xl border border-border p-4 active:scale-[0.96] transition-transform"
+                    className="flex flex-col items-center gap-2 bg-surface rounded-2xl border border-border p-4 active:scale-[0.98] transition-transform"
                   >
                     <LogoBadge
                       logo={inst?.logo}
@@ -523,7 +526,7 @@ function StepInstitutionGrid({
             key={inst.key}
             type="button"
             onClick={() => onSelect(inst.key)}
-            className="flex flex-col items-center gap-2 bg-surface rounded-2xl border border-border p-4 active:scale-[0.96] transition-transform"
+            className="flex flex-col items-center gap-2 bg-surface rounded-2xl border border-border p-4 active:scale-[0.98] transition-transform"
           >
             <LogoBadge logo={inst.logo} name={inst.shortName ?? inst.name} color={inst.color} size="lg" />
             <span className="text-xs text-text-primary text-center leading-tight font-medium truncate w-full">
@@ -535,7 +538,7 @@ function StepInstitutionGrid({
         <button
           type="button"
           onClick={() => onSelect(null)}
-          className="flex flex-col items-center gap-2 bg-surface rounded-2xl border border-border p-4 active:scale-[0.96] transition-transform"
+          className="flex flex-col items-center gap-2 bg-surface rounded-2xl border border-border p-4 active:scale-[0.98] transition-transform"
         >
           <div className="w-11 h-11 rounded-full flex items-center justify-center bg-text-secondary/20 text-text-secondary text-xs font-bold">
             ?

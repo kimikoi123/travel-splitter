@@ -145,7 +145,7 @@ export default function PlanTab({
           <button
             key={label}
             onClick={onClick}
-            className="w-full flex items-center gap-3.5 p-4 bg-surface rounded-2xl border border-border hover:bg-surface-hover active:scale-[0.99] transition-all"
+            className="w-full flex items-center gap-3.5 p-4 bg-surface rounded-2xl border border-border hover:bg-surface-hover active:scale-[0.98] transition-all"
           >
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
               <Icon size={18} className="text-primary" />

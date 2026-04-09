@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { X, FileText, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 import type { Transaction, Account } from '../types';
 import {
   filterTransactionsForExport,
@@ -34,6 +35,8 @@ export default function ExportSheet({
   displayName,
   onClose,
 }: ExportSheetProps) {
+  useEscapeKey(onClose);
+
   const [dateFrom, setDateFrom] = useState(getDefaultDateFrom);
   const [dateTo, setDateTo] = useState(getToday);
   const [accountId, setAccountId] = useState('all');

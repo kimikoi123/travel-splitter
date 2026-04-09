@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown, X } from 'lucide-react';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 import { CURRENCIES } from '../utils/currencies';
 import { parseAmountInput, isKNotation } from '../utils/amountParser';
 import type { DebtEntry, DebtDirection } from '../types';
@@ -15,6 +16,8 @@ export default function DebtForm({
   onCancel,
   editingDebt,
 }: DebtFormProps) {
+  useEscapeKey(onCancel);
+
   const [direction, setDirection] = useState<DebtDirection>(
     editingDebt?.direction ?? 'i_owe',
   );

@@ -3,6 +3,7 @@ import { Search, X, Inbox, Pencil, Trash2, Download } from 'lucide-react';
 import type { Transaction, Account } from '../types';
 import { formatCurrency } from '../utils/currencies';
 import { getFinanceCategoryDef } from '../utils/categories';
+import { TOAST_DURATION } from '../hooks/useToast';
 import ExportSheet from './ExportSheet';
 
 interface HistoryTabProps {
@@ -46,7 +47,7 @@ export default function HistoryTab({ transactions, accounts, defaultCurrency, di
         next.delete(t.id);
         return next;
       });
-    }, 5500);
+    }, TOAST_DURATION + 500);
   };
 
   const filteredTransactions = useMemo(() => {
@@ -123,6 +124,7 @@ export default function HistoryTab({ transactions, accounts, defaultCurrency, di
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search transactions..."
+          aria-label="Search transactions"
           className="bg-transparent flex-1 text-sm text-text-primary placeholder:text-text-secondary py-2.5 outline-none"
         />
         {search.length > 0 && (

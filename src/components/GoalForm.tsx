@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { X, Check } from 'lucide-react';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 import { parseAmountInput, isKNotation } from '../utils/amountParser';
 import type { Goal, Account } from '../types';
 import { ACCOUNT_COLORS } from '../hooks/useAccounts';
@@ -17,6 +18,8 @@ export default function GoalForm({
   onCancel,
   editingGoal,
 }: GoalFormProps) {
+  useEscapeKey(onCancel);
+
   const isEditing = !!editingGoal;
 
   const [name, setName] = useState(editingGoal?.name ?? '');
@@ -157,7 +160,7 @@ export default function GoalForm({
               value={linkedAccountId}
               onChange={(e) => setLinkedAccountId(e.target.value)}
               aria-label="Link to account"
-              className="w-full bg-surface border border-border rounded-xl py-3 px-4 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/40 transition-all appearance-none"
+              className="w-full bg-surface border border-border rounded-xl py-3 px-4 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/40 transition-all appearance-none select-chevron"
             >
               <option value="">None</option>
               {accounts.map((account) => (

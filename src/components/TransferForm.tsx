@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown, X } from 'lucide-react';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 import { formatCurrency } from '../utils/currencies';
 import { parseAmountInput, isKNotation } from '../utils/amountParser';
 import type { Account } from '../types';
@@ -17,6 +18,8 @@ export default function TransferForm({
   onSave,
   onCancel,
 }: TransferFormProps) {
+  useEscapeKey(onCancel);
+
   const [amount, setAmount] = useState('');
   const [toAccountId, setToAccountId] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 import { CURRENCIES } from '../utils/currencies';
 import { parseAmountInput, isKNotation } from '../utils/amountParser';
 import type { Installment, Account } from '../types';
@@ -17,6 +18,8 @@ export default function InstallmentForm({
   onCancel,
   editingInstallment,
 }: InstallmentFormProps) {
+  useEscapeKey(onCancel);
+
   const isEditing = !!editingInstallment;
 
   const [itemName, setItemName] = useState(editingInstallment?.itemName ?? '');
@@ -219,7 +222,7 @@ export default function InstallmentForm({
               value={creditCardAccountId}
               onChange={(e) => setCreditCardAccountId(e.target.value)}
               aria-label="Link to credit card"
-              className="w-full bg-surface border border-border rounded-xl py-3 px-4 text-sm text-text-primary appearance-none focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/40 transition-all"
+              className="w-full bg-surface border border-border rounded-xl py-3 px-4 text-sm text-text-primary appearance-none select-chevron focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/40 transition-all"
             >
               <option value="">None</option>
               {creditCards.map((card) => (
@@ -239,7 +242,7 @@ export default function InstallmentForm({
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
               aria-label="Currency"
-              className="w-full bg-surface border border-border rounded-xl py-3 px-4 text-sm text-text-primary appearance-none focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/40 transition-all"
+              className="w-full bg-surface border border-border rounded-xl py-3 px-4 text-sm text-text-primary appearance-none select-chevron focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/40 transition-all"
             >
               {Object.entries(CURRENCIES).map(([code, config]) => (
                 <option key={code} value={code}>

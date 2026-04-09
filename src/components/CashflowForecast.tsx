@@ -166,7 +166,7 @@ export default function CashflowForecast({
         <button
           type="button"
           onClick={onBack}
-          className="w-11 h-11 flex items-center justify-center rounded-xl bg-surface border border-border hover:bg-surface-hover active:scale-[0.97] transition-all shrink-0"
+          className="w-11 h-11 flex items-center justify-center rounded-xl bg-surface border border-border hover:bg-surface-hover active:scale-[0.98] transition-all shrink-0"
         >
           <ArrowLeft size={18} className="text-text-primary" />
         </button>

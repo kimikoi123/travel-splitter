@@ -1,4 +1,5 @@
 import { TrendingDown, TrendingUp, PlaneTakeoff, Wallet } from 'lucide-react';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 
 interface ActionMenuProps {
   onAddExpense: () => void;
@@ -9,15 +10,24 @@ interface ActionMenuProps {
 }
 
 export default function ActionMenu({ onAddExpense, onAddIncome, onNewTrip, onAddAccount, onClose }: ActionMenuProps) {
+  useEscapeKey(onClose);
+
   return (
     <div className="fixed inset-0 z-50">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 animate-fade-in"
         onClick={onClose}
+        aria-hidden="true"
       />
       {/* Bottom sheet */}
-      <div className="absolute bottom-0 left-0 right-0 bg-surface rounded-t-3xl p-5 animate-slide-up border-t border-border">
+      <div
+        className="absolute bottom-0 left-0 right-0 bg-surface rounded-t-3xl p-5 animate-slide-up border-t border-border"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Quick actions"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.25rem)' }}
+      >
         <div className="w-9 h-1 bg-border rounded-full mx-auto mb-5" />
         <div className="max-w-2xl mx-auto flex flex-col gap-2">
           <button

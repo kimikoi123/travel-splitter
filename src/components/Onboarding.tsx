@@ -88,7 +88,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
               id="onboarding-currency"
               value={defaultCurrency}
               onChange={(e) => setDefaultCurrency(e.target.value)}
-              className="bg-surface border border-border rounded-xl py-3 px-4 text-sm text-text-primary outline-none focus:ring-2 focus:ring-primary/40 transition-shadow appearance-none"
+              className="bg-surface border border-border rounded-xl py-3 px-4 text-sm text-text-primary outline-none focus:ring-2 focus:ring-primary/40 transition-shadow appearance-none select-chevron"
             >
               {Object.entries(CURRENCIES).map(([code, config]) => (
                 <option key={code} value={code}>

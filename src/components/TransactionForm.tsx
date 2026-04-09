@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { ChevronDown, X } from 'lucide-react';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 import { CURRENCIES } from '../utils/currencies';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../utils/categories';
 import { parseAmountInput, isKNotation } from '../utils/amountParser';
@@ -64,6 +65,8 @@ export default function TransactionForm({
   onSave,
   onCancel,
 }: TransactionFormProps) {
+  useEscapeKey(onCancel);
+
   const categories: FinanceCategoryDef[] =
     type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
 
@@ -274,7 +277,7 @@ export default function TransactionForm({
               <select
                 value={accountId ?? ''}
                 onChange={(e) => setAccountId(e.target.value || undefined)}
-                className="w-full bg-surface border border-border rounded-xl py-3 px-4 text-sm text-text-primary appearance-none"
+                className="w-full bg-surface border border-border rounded-xl py-3 px-4 text-sm text-text-primary appearance-none select-chevron"
               >
                 <option value="">None</option>
                 {accounts.map((acc) => (
@@ -295,7 +298,7 @@ export default function TransactionForm({
               <select
                 value={budgetId ?? ''}
                 onChange={(e) => setBudgetId(e.target.value || undefined)}
-                className="w-full bg-surface border border-border rounded-xl py-3 px-4 text-sm text-text-primary appearance-none"
+                className="w-full bg-surface border border-border rounded-xl py-3 px-4 text-sm text-text-primary appearance-none select-chevron"
               >
                 <option value="">None</option>
                 {customBudgets.map((b) => (

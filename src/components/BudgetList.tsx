@@ -34,7 +34,7 @@ function BudgetCard({
   const fillWidth = Math.min(budget.percentage, 100);
 
   return (
-    <div className="bg-surface rounded-2xl border border-white/[0.06] p-4 flex items-start gap-3 hover:bg-surface-hover active:scale-[0.99] transition-all">
+    <div className="bg-surface rounded-2xl border border-white/[0.06] p-4 flex items-start gap-3 hover:bg-surface-hover active:scale-[0.98] transition-all">
       {/* Icon circle */}
       {budget.type === 'category' ? (
         <div

@@ -11,7 +11,7 @@ interface PendingToast extends Toast {
   timeoutId: ReturnType<typeof setTimeout>;
 }
 
-const TOAST_DURATION = 5000;
+export const TOAST_DURATION = 5000;
 
 let nextId = 0;
 

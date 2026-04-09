@@ -51,7 +51,7 @@ function InstallmentCard({
     : undefined;
 
   return (
-    <div className="bg-surface rounded-2xl border border-white/[0.06] p-4 hover:bg-surface-hover active:scale-[0.99] transition-all">
+    <div className="bg-surface rounded-2xl border border-white/[0.06] p-4 hover:bg-surface-hover active:scale-[0.98] transition-all">
       {/* Top row: name + completed badge */}
       <div className="flex items-start justify-between gap-2 mb-1">
         <p className="text-sm font-semibold text-text-primary truncate">

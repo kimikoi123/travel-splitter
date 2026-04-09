@@ -134,7 +134,7 @@ export default function Settings({
                   onChange={handleCurrencyChange}
                   onBlur={() => setEditingCurrency(false)}
                   autoFocus
-                  className="bg-surface border border-border rounded-xl py-2 px-3 text-sm text-text-primary outline-none focus:ring-2 focus:ring-primary/40 transition-shadow appearance-none"
+                  className="bg-surface border border-border rounded-xl py-2 px-3 text-sm text-text-primary outline-none focus:ring-2 focus:ring-primary/40 transition-shadow appearance-none select-chevron"
                 >
                   {Object.entries(CURRENCIES).map(([code, config]) => (
                     <option key={code} value={code}>
@@ -194,7 +194,7 @@ export default function Settings({
               <select
                 value={preferences.paydayCurrency ?? preferences.defaultCurrency}
                 onChange={handlePaydayCurrencyChange}
-                className="bg-surface border border-border rounded-xl py-2 px-3 text-sm text-text-primary outline-none focus:ring-2 focus:ring-primary/40 transition-shadow appearance-none"
+                className="bg-surface border border-border rounded-xl py-2 px-3 text-sm text-text-primary outline-none focus:ring-2 focus:ring-primary/40 transition-shadow appearance-none select-chevron"
               >
                 {Object.entries(CURRENCIES).map(([code, config]) => (
                   <option key={code} value={code}>

@@ -23,7 +23,7 @@ export default function BottomTabBar({ activeTab, onTabChange, onFabClick, fabOp
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       <div className="max-w-2xl mx-auto flex items-center px-2">
-        <div className="flex flex-1 justify-around items-center">
+        <div className="flex flex-1 justify-around items-center" role="tablist">
           {TABS.map(({ id, label, icon: Icon }) => {
             const isActive = activeTab === id;
             return (

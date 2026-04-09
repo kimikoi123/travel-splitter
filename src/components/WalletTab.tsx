@@ -59,7 +59,7 @@ function DebitCard({ account, onClick }: { account: Account; onClick: () => void
     <button
       type="button"
       onClick={onClick}
-      className="rounded-2xl p-4 min-h-[140px] h-full w-full flex flex-col justify-between text-left hover:brightness-110 active:scale-[0.99] transition-all"
+      className="rounded-2xl p-4 min-h-[140px] h-full w-full flex flex-col justify-between text-left hover:brightness-110 active:scale-[0.98] transition-all"
       style={{ backgroundColor: account.color }}
     >
       <div>
@@ -95,7 +95,7 @@ function CreditCard({ account, onClick }: { account: Account; onClick: () => voi
     <button
       type="button"
       onClick={onClick}
-      className="rounded-2xl p-4 min-h-[140px] h-full w-full flex flex-col justify-between text-left hover:brightness-110 active:scale-[0.99] transition-all"
+      className="rounded-2xl p-4 min-h-[140px] h-full w-full flex flex-col justify-between text-left hover:brightness-110 active:scale-[0.98] transition-all"
       style={{ backgroundColor: account.color }}
     >
       <div>
@@ -143,7 +143,7 @@ function InvestmentCard({ account, onClick }: { account: Account; onClick: () =>
     <button
       type="button"
       onClick={onClick}
-      className="rounded-2xl p-4 min-h-[140px] h-full w-full flex flex-col justify-between text-left hover:brightness-110 active:scale-[0.99] transition-all"
+      className="rounded-2xl p-4 min-h-[140px] h-full w-full flex flex-col justify-between text-left hover:brightness-110 active:scale-[0.98] transition-all"
       style={{ backgroundColor: account.color }}
     >
       <div>

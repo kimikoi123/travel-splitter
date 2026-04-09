@@ -45,6 +45,7 @@ export default function QuickAddBar({ onParsed }: QuickAddBarProps) {
           type="text"
           inputMode="text"
           enterKeyHint="go"
+          aria-label="Quick add transaction"
           value={value}
           onChange={(e) => { setValue(e.target.value); setError(false); }}
           onKeyDown={handleKeyDown}
@@ -59,6 +60,7 @@ export default function QuickAddBar({ onParsed }: QuickAddBarProps) {
           type="button"
           onClick={handleSubmit}
           disabled={!value.trim()}
+          aria-label="Submit quick add"
           className="shrink-0 w-10 h-10 flex items-center justify-center bg-primary text-white rounded-xl transition-all active:scale-95 disabled:opacity-30"
         >
           <ArrowRight size={18} />

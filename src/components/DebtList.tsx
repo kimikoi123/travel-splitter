@@ -62,7 +62,7 @@ function DebtCard({
   };
 
   return (
-    <div className="bg-surface rounded-2xl border border-white/[0.06] p-4 hover:bg-surface-hover active:scale-[0.99] transition-all">
+    <div className="bg-surface rounded-2xl border border-white/[0.06] p-4 hover:bg-surface-hover active:scale-[0.98] transition-all">
       <div className="flex items-start gap-3">
         {/* Avatar circle */}
         <div
