@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { CURRENCIES } from '../utils/currencies';
+import PairEntryScreen from '../features/sync/PairEntryScreen';
 import type { ThemePreference } from '../types';
 
 interface OnboardingProps {
@@ -20,6 +21,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   const [displayName, setDisplayName] = useState('');
   const [defaultCurrency, setDefaultCurrency] = useState('PHP');
   const [theme, setTheme] = useState<ThemePreference>('system');
+  const [showPairEntry, setShowPairEntry] = useState(false);
 
   const canSubmit = displayName.trim().length > 0;
 
@@ -130,7 +132,19 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         >
           Get Started
         </button>
+
+        {/* Pair with existing device (for users already syncing on another device) */}
+        <button
+          type="button"
+          onClick={() => setShowPairEntry(true)}
+          className="text-xs text-text-secondary hover:text-text-primary transition-colors -mt-3"
+        >
+          Already using Finverse?{' '}
+          <span className="text-primary font-semibold">Pair with existing device</span>
+        </button>
       </form>
+
+      {showPairEntry && <PairEntryScreen onClose={() => setShowPairEntry(false)} />}
     </div>
   );
 }
