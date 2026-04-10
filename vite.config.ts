@@ -9,6 +9,20 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'prompt',
+      manifest: {
+        name: 'Finverse',
+        short_name: 'Finverse',
+        description: 'Personal finance tracker & trip expense splitter',
+        start_url: '/',
+        display: 'standalone',
+        background_color: '#0e0e14',
+        theme_color: '#0e0e14',
+        icons: [
+          { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+          { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
+      },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
