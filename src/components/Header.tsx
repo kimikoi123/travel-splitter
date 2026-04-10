@@ -51,7 +51,7 @@ export default function Header({ activeTrip, onBack, onOpenSettings, showTripNav
               </div>
               <div>
                 <h1 className="text-base font-semibold text-text-primary leading-tight tracking-tight" data-heading>
-                  Finance
+                  Finverse
                 </h1>
                 <p className="text-[11px] text-text-secondary/60 mt-0.5">Personal tracker</p>
               </div>

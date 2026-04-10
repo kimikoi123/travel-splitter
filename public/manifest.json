@@ -1,6 +1,6 @@
 {
-  "name": "Finance Tracker",
-  "short_name": "Finance",
+  "name": "Finverse",
+  "short_name": "Finverse",
   "description": "Personal finance tracker & trip expense splitter",
   "start_url": "/",
   "display": "standalone",
