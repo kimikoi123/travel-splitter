@@ -1,3 +1,15 @@
+// Tags rows in the sync engine's push queue. Must match the `ALLOWED_TYPES`
+// whitelist in `api/sync/push.ts` on the server.
+export type SyncEntityType =
+  | 'trip'
+  | 'transaction'
+  | 'account'
+  | 'budget'
+  | 'goal'
+  | 'debt'
+  | 'installment'
+  | 'userPreferences';
+
 export interface CurrencyConfig {
   symbol: string;
   name: string;

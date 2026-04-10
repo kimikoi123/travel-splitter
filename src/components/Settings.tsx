@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback } from 'react';
-import { Sun, Moon, Monitor, Download, Upload, EyeOff } from 'lucide-react';
+import { Sun, Moon, Monitor, Download, Upload, EyeOff, Cloud, CloudOff, RefreshCw, LogOut } from 'lucide-react';
 import type { UserPreferences, ThemePreference } from '../types';
 import { CURRENCIES } from '../utils/currencies';
+import { useSync } from '../hooks/useSync';
 
 interface SettingsProps {
   preferences: UserPreferences;
@@ -287,7 +288,142 @@ export default function Settings({
             />
           </div>
         </section>
+
+        <SyncDevSection />
       </div>
     </div>
+  );
+}
+
+// Temporary dev-only sync controls. Phase 4 replaces this with the full
+// "Sync & Devices" section (QR pairing, device list, proper device labels).
+// For now it exposes: current status, short vault id, bootstrap, manual sync,
+// and local sign-out — just enough to validate the engine end-to-end.
+function SyncDevSection() {
+  const sync = useSync();
+  const [busy, setBusy] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  // No useCallback — `sync` is a fresh object every render (spread from
+  // the external store snapshot), so memoization would invalidate every
+  // render anyway. Plain handlers are correct and cheaper to reason about.
+  async function handleBootstrap() {
+    setBusy(true);
+    setLocalError(null);
+    try {
+      await sync.bootstrapNewVault(`${navigator.platform} (dev)`);
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleSyncNow() {
+    setBusy(true);
+    setLocalError(null);
+    try {
+      await sync.syncNow();
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const statusLabel = (() => {
+    if (!sync.hasIdentity) return 'Offline only — sync is off';
+    if (sync.status === 'syncing') return 'Syncing…';
+    if (sync.status === 'offline') return 'Offline — will sync when online';
+    if (sync.status === 'error') return 'Sync error';
+    if (sync.lastSyncedAt) {
+      const seconds = Math.max(0, Math.round((Date.now() - sync.lastSyncedAt) / 1000));
+      if (seconds < 60) return `Synced ${seconds}s ago`;
+      const minutes = Math.round(seconds / 60);
+      return `Synced ${minutes}m ago`;
+    }
+    return 'Ready to sync';
+  })();
+
+  const StatusIcon = sync.hasIdentity && sync.status !== 'offline' && sync.status !== 'error' ? Cloud : CloudOff;
+  const displayedError = localError ?? sync.error;
+
+  return (
+    <section>
+      <h2 className="text-[11px] text-text-secondary font-semibold uppercase tracking-wider mb-2 px-1">
+        Sync (Beta)
+      </h2>
+      <div className="bg-surface rounded-2xl border border-border overflow-hidden">
+        <div className="flex items-center justify-between py-3 px-4 border-b border-border">
+          <div className="flex items-center gap-2">
+            <StatusIcon size={16} className="text-text-secondary" />
+            <div>
+              <div className="text-sm text-text-primary">{statusLabel}</div>
+              {sync.vaultIdShort && (
+                <div className="text-[11px] text-text-secondary/60 mt-0.5 font-mono">
+                  Vault {sync.vaultIdShort}…{sync.pendingCount > 0 ? ` · ${sync.pendingCount} pending` : ''}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {displayedError && (
+          <div className="py-2 px-4 border-b border-border bg-danger/5">
+            <p className="text-[11px] text-danger">{displayedError}</p>
+          </div>
+        )}
+
+        {!sync.hasIdentity ? (
+          <>
+            <div className="py-2 px-4 border-b border-border bg-surface-light/40">
+              <p className="text-[11px] text-text-secondary/80 leading-relaxed">
+                Finverse works fully offline. Sync is optional — enable it only if you
+                want the same data on more than one device. Your data stays on this
+                device until you opt in.
+              </p>
+            </div>
+            <button
+              onClick={handleBootstrap}
+              disabled={busy}
+              className="flex justify-between items-center py-3 px-4 w-full text-left hover:bg-surface-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <div>
+                <span className="text-sm text-text-primary">Enable sync on this device</span>
+                <p className="text-[11px] text-text-secondary/60 mt-0.5">
+                  Creates a private vault in the cloud. Pair more devices later.
+                </p>
+              </div>
+              <Cloud size={16} className="text-primary" />
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={handleSyncNow}
+              disabled={busy || sync.status === 'syncing'}
+              className="flex justify-between items-center py-3 px-4 border-b border-border w-full text-left hover:bg-surface-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="text-sm text-text-primary">Sync now</span>
+              <RefreshCw
+                size={16}
+                className={`text-text-secondary ${sync.status === 'syncing' ? 'animate-spin' : ''}`}
+              />
+            </button>
+            <button
+              onClick={() => {
+                if (confirm('Sign out of sync on this device? Your data stays here, and other paired devices are unaffected.')) {
+                  sync.signOutLocal();
+                }
+              }}
+              className="flex justify-between items-center py-3 px-4 w-full text-left hover:bg-surface-light transition-colors"
+            >
+              <span className="text-sm text-danger">Sign out on this device</span>
+              <LogOut size={16} className="text-danger" />
+            </button>
+          </>
+        )}
+      </div>
+    </section>
   );
 }

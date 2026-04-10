@@ -28,3 +28,4 @@ dist-ssr
 .superpowers
 .vercel
 .env*.local
+.playwright-mcp

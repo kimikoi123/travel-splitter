@@ -1,9 +1,10 @@
 import { db } from './database';
-import type { Trip, TripState, DeletedTrip, ExchangeRates, Transaction, UserPreferences, Account, Budget, Goal, DebtEntry, Installment } from '../types';
+import { hasIdentity } from '../sync/deviceIdentity';
+import type { Trip, TripState, DeletedTrip, ExchangeRates, Transaction, UserPreferences, Account, Budget, Goal, DebtEntry, Installment, SyncEntityType } from '../types';
 
 // Sync helpers: every write goes through these so `updatedAt` is always stamped
-// and deletes become tombstones instead of hard removals. The sync engine (Phase 3)
-// relies on these invariants to build delta diffs.
+// and deletes become tombstones instead of hard removals. The sync engine relies
+// on `pendingPushes` (enqueued here) to know which rows still need uploading.
 const stampWrite = <T extends { updatedAt?: number }>(obj: T): T => ({
   ...obj,
   updatedAt: Date.now(),
@@ -19,6 +20,50 @@ const tombstoneUpdate = (): { deletedAt: number; updatedAt: number } => {
   return { deletedAt: now, updatedAt: now };
 };
 
+// Enqueue a row into the push queue. Duplicate keys dedupe naturally
+// (Dexie put() upserts by primary key), so rapid repeated edits of the
+// same row only produce one queue entry until the sync engine drains it.
+//
+// IMPORTANT: Finverse is an offline-first app — cloud sync is strictly
+// opt-in. Users who never create a vault should have ZERO cloud-related
+// side effects, including queue growth. So every enqueue first checks
+// whether an identity exists; if not, the write still happens locally
+// (via Dexie put/update in the caller), but nothing is queued.
+async function enqueuePush(entityType: SyncEntityType, entityId: string): Promise<void> {
+  if (!hasIdentity()) return;
+  await db.pendingPushes.put({
+    id: `${entityType}:${entityId}`,
+    entityType,
+    entityId,
+    enqueuedAt: Date.now(),
+  });
+  notifySyncEngine();
+}
+
+// Every write calls this after enqueueing; the sync engine subscribes and
+// triggers a debounced push. Decoupled via a tiny listener array so storage.ts
+// has no direct dependency on src/sync/*.
+type MutationListener = () => void;
+const mutationListeners: MutationListener[] = [];
+
+export function subscribeMutations(listener: MutationListener): () => void {
+  mutationListeners.push(listener);
+  return () => {
+    const idx = mutationListeners.indexOf(listener);
+    if (idx >= 0) mutationListeners.splice(idx, 1);
+  };
+}
+
+function notifySyncEngine(): void {
+  for (const listener of mutationListeners) {
+    try {
+      listener();
+    } catch (err) {
+      console.error('Mutation listener threw:', err);
+    }
+  }
+}
+
 export async function loadState(): Promise<TripState> {
   const all = await db.trips.toArray();
   const trips = all.filter((t) => !t.deletedAt);
@@ -28,7 +73,9 @@ export async function loadState(): Promise<TripState> {
 
 export async function saveState(state: TripState): Promise<void> {
   const now = Date.now();
-  await db.transaction('rw', db.trips, db.meta, async () => {
+  const changedIds: string[] = [];
+  const syncEnabled = hasIdentity();
+  await db.transaction('rw', db.trips, db.meta, db.pendingPushes, async () => {
     const existing = await db.trips.toArray();
     const newIds = new Set(state.trips.map((t) => t.id));
     const toSoftDelete = existing.filter((t) => !newIds.has(t.id) && !t.deletedAt);
@@ -39,12 +86,25 @@ export async function saveState(state: TripState): Promise<void> {
     });
     if (toPut.length > 0) {
       await db.trips.bulkPut(toPut);
+      for (const t of toPut) changedIds.push(t.id);
     }
     for (const trip of toSoftDelete) {
       await db.trips.update(trip.id, { deletedAt: now, updatedAt: now });
+      changedIds.push(trip.id);
     }
     await db.meta.put({ key: 'activeTripId', value: state.activeTripId });
+    if (syncEnabled && changedIds.length > 0) {
+      await db.pendingPushes.bulkPut(
+        changedIds.map((id) => ({
+          id: `trip:${id}`,
+          entityType: 'trip' as const,
+          entityId: id,
+          enqueuedAt: now,
+        })),
+      );
+    }
   });
+  if (syncEnabled && changedIds.length > 0) notifySyncEngine();
 }
 
 const DELETED_TRIP_RETENTION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -112,11 +172,13 @@ export async function loadUserPreferences(): Promise<UserPreferences | null> {
 
 export async function saveUserPreferences(prefs: UserPreferences): Promise<void> {
   await db.userPreferences.put(stampWrite({ ...prefs, id: 'default' }));
+  await enqueuePush('userPreferences', 'default');
 }
 
 // Transactions
 export async function addTransaction(txn: Transaction): Promise<void> {
   await db.transactions.put(stampWrite(txn));
+  await enqueuePush('transaction', txn.id);
 }
 
 export async function getTransactions(): Promise<Transaction[]> {
@@ -131,10 +193,12 @@ export async function getTransactionsByDateRange(startDate: string, endDate: str
 
 export async function updateTransaction(id: string, updates: Partial<Transaction>): Promise<void> {
   await db.transactions.update(id, stampUpdate(updates));
+  await enqueuePush('transaction', id);
 }
 
 export async function deleteTransaction(id: string): Promise<void> {
   await db.transactions.update(id, tombstoneUpdate());
+  await enqueuePush('transaction', id);
 }
 
 // Accounts
@@ -145,23 +209,36 @@ export async function loadAccounts(): Promise<Account[]> {
 
 export async function addAccount(account: Account): Promise<void> {
   await db.accounts.put(stampWrite(account));
+  await enqueuePush('account', account.id);
 }
 
 export async function updateAccount(id: string, updates: Partial<Account>): Promise<void> {
   await db.accounts.update(id, stampUpdate(updates));
+  await enqueuePush('account', id);
 }
 
 export async function deleteAccount(id: string): Promise<void> {
   await db.accounts.update(id, tombstoneUpdate());
+  await enqueuePush('account', id);
 }
 
 export async function batchUpdateSortOrder(updates: { id: string; sortOrder: number }[]): Promise<void> {
   const now = Date.now();
-  await db.transaction('rw', db.accounts, async () => {
+  const syncEnabled = hasIdentity();
+  await db.transaction('rw', db.accounts, db.pendingPushes, async () => {
     for (const { id, sortOrder } of updates) {
       await db.accounts.update(id, { sortOrder, updatedAt: now });
+      if (syncEnabled) {
+        await db.pendingPushes.put({
+          id: `account:${id}`,
+          entityType: 'account',
+          entityId: id,
+          enqueuedAt: now,
+        });
+      }
     }
   });
+  if (syncEnabled && updates.length > 0) notifySyncEngine();
 }
 
 // Budgets
@@ -172,14 +249,17 @@ export async function loadBudgets(): Promise<Budget[]> {
 
 export async function addBudget(budget: Budget): Promise<void> {
   await db.budgets.put(stampWrite(budget));
+  await enqueuePush('budget', budget.id);
 }
 
 export async function updateBudget(id: string, updates: Partial<Budget>): Promise<void> {
   await db.budgets.update(id, stampUpdate(updates));
+  await enqueuePush('budget', id);
 }
 
 export async function deleteBudget(id: string): Promise<void> {
   await db.budgets.update(id, tombstoneUpdate());
+  await enqueuePush('budget', id);
 }
 
 // Goals
@@ -189,12 +269,15 @@ export async function loadGoals(): Promise<Goal[]> {
 }
 export async function addGoal(goal: Goal): Promise<void> {
   await db.goals.put(stampWrite(goal));
+  await enqueuePush('goal', goal.id);
 }
 export async function updateGoal(id: string, updates: Partial<Goal>): Promise<void> {
   await db.goals.update(id, stampUpdate(updates));
+  await enqueuePush('goal', id);
 }
 export async function deleteGoal(id: string): Promise<void> {
   await db.goals.update(id, tombstoneUpdate());
+  await enqueuePush('goal', id);
 }
 
 // Debts
@@ -204,12 +287,15 @@ export async function loadDebts(): Promise<DebtEntry[]> {
 }
 export async function addDebt(debt: DebtEntry): Promise<void> {
   await db.debts.put(stampWrite(debt));
+  await enqueuePush('debt', debt.id);
 }
 export async function updateDebt(id: string, updates: Partial<DebtEntry>): Promise<void> {
   await db.debts.update(id, stampUpdate(updates));
+  await enqueuePush('debt', id);
 }
 export async function deleteDebt(id: string): Promise<void> {
   await db.debts.update(id, tombstoneUpdate());
+  await enqueuePush('debt', id);
 }
 
 // Installments
@@ -219,10 +305,13 @@ export async function loadInstallments(): Promise<Installment[]> {
 }
 export async function addInstallment(inst: Installment): Promise<void> {
   await db.installments.put(stampWrite(inst));
+  await enqueuePush('installment', inst.id);
 }
 export async function updateInstallment(id: string, updates: Partial<Installment>): Promise<void> {
   await db.installments.update(id, stampUpdate(updates));
+  await enqueuePush('installment', id);
 }
 export async function deleteInstallment(id: string): Promise<void> {
   await db.installments.update(id, tombstoneUpdate());
+  await enqueuePush('installment', id);
 }

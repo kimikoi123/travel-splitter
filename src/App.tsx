@@ -44,6 +44,7 @@ import SettingsScreen from './components/Settings';
 import { useGoals } from './hooks/useGoals';
 import { useDebts } from './hooks/useDebts';
 import { useInstallments } from './hooks/useInstallments';
+import { start as startSyncEngine, stop as stopSyncEngine } from './sync/syncEngine';
 import type { Trip, Account, Budget, Goal, DebtEntry, Installment, ThemePreference, Transaction } from './types';
 
 function App() {
@@ -81,6 +82,15 @@ function App() {
   const { goals, addGoal, editGoal, removeGoal } = useGoals();
   const { debts, addDebt, editDebt, removeDebt } = useDebts();
   const { installments, addInstallment, editInstallment, removeInstallment } = useInstallments();
+
+  // Start the cloud sync engine once on mount. The engine is idempotent
+  // (internal `started` flag), and we still return a cleanup so strict-mode
+  // dev double-invocation cleanly tears down + re-installs its listeners
+  // and intervals instead of leaving stale ones behind.
+  useEffect(() => {
+    startSyncEngine();
+    return () => stopSyncEngine();
+  }, []);
 
   const [activeTab, setActiveTab] = useState<TabId>('home');
   const [showActionMenu, setShowActionMenu] = useState(false);

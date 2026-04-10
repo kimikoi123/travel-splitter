@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { Trip, DeletedTrip, ExchangeRates, Transaction, UserPreferences, Account, Budget, Goal, DebtEntry, Installment } from '../types';
+import type { Trip, DeletedTrip, ExchangeRates, Transaction, UserPreferences, Account, Budget, Goal, DebtEntry, Installment, SyncEntityType } from '../types';
 
 interface MetaRecord {
   key: string;
@@ -21,6 +21,16 @@ interface ReceiptPhotoRecord {
   data: string; // base64 data URI
 }
 
+// Queue of locally-mutated rows that still need to be pushed to the cloud.
+// Primary key is "<entityType>:<entityId>" so rapid repeated edits of the
+// same row dedupe naturally. Cleared by the sync engine on successful push.
+export interface PendingPushRecord {
+  id: string;
+  entityType: SyncEntityType;
+  entityId: string;
+  enqueuedAt: number;
+}
+
 class SplitTripDB extends Dexie {
   trips!: Table<Trip, string>;
   meta!: Table<MetaRecord, string>;
@@ -34,6 +44,7 @@ class SplitTripDB extends Dexie {
   goals!: Table<Goal, string>;
   debts!: Table<DebtEntry, string>;
   installments!: Table<Installment, string>;
+  pendingPushes!: Table<PendingPushRecord, string>;
 
   constructor() {
     super('splittrip');
@@ -144,6 +155,25 @@ class SplitTripDB extends Dexie {
       await stamp('goals');
       await stamp('debts');
       await stamp('installments');
+    });
+    // v10: add pendingPushes queue used by the sync engine to track rows
+    // that still need to be uploaded to the cloud. No data migration —
+    // starts empty. On first vault bootstrap, the sync engine back-fills
+    // it with every existing row so the initial upload covers all state.
+    this.version(10).stores({
+      trips: 'id, updatedAt, deletedAt',
+      meta: 'key',
+      rateCache: 'key',
+      deletedTrips: 'id',
+      receiptPhotos: 'expenseId',
+      transactions: 'id, date, type, updatedAt, deletedAt',
+      userPreferences: 'id, updatedAt',
+      accounts: 'id, type, sortOrder, updatedAt, deletedAt',
+      budgets: 'id, type, updatedAt, deletedAt',
+      goals: 'id, updatedAt, deletedAt',
+      debts: 'id, direction, updatedAt, deletedAt',
+      installments: 'id, updatedAt, deletedAt',
+      pendingPushes: 'id, enqueuedAt',
     });
   }
 }
