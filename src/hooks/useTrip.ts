@@ -3,6 +3,7 @@ import { generateId } from '../utils/helpers';
 import type { Trip, TripState, DeletedTrip, Member, Expense } from '../types';
 import { loadState, saveState, loadDeletedTrips, addDeletedTrip, removeDeletedTrip, clearAllDeletedTrips } from '../db/storage';
 import { migrateFromLocalStorage } from '../db/migrate';
+import { useRefreshOnRemote } from './useRefreshOnRemote';
 
 const INITIAL_STATE: TripState = {
   trips: [],
@@ -14,27 +15,37 @@ export function useTrip() {
   const [deletedTrips, setDeletedTrips] = useState<DeletedTrip[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Re-read trips + deleted-trips from Dexie. Called on mount and again
+  // whenever the sync engine applies a remote pull batch.
+  const refresh = useCallback(async () => {
+    const stored = await loadState();
+    if (stored.trips.length > 0 || stored.activeTripId) {
+      setState(stored);
+    }
+    const deleted = await loadDeletedTrips();
+    setDeletedTrips(deleted);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     async function init() {
+      // Legacy localStorage migration runs once on first mount only —
+      // we don't want to re-run it on every remote-applied event.
       const migrated = await migrateFromLocalStorage();
       if (migrated && !cancelled) {
         setState(migrated);
-      } else {
-        const stored = await loadState();
-        if (!cancelled && (stored.trips.length > 0 || stored.activeTripId)) {
-          setState(stored);
-        }
-      }
-      if (!cancelled) {
         const deleted = await loadDeletedTrips();
-        setDeletedTrips(deleted);
-        setLoading(false);
+        if (!cancelled) setDeletedTrips(deleted);
+      } else if (!cancelled) {
+        await refresh();
       }
+      if (!cancelled) setLoading(false);
     }
-    init();
+    void init();
     return () => { cancelled = true; };
-  }, []);
+  }, [refresh]);
+
+  useRefreshOnRemote(refresh);
 
   const persist = useCallback((newState: TripState) => {
     setState(newState);

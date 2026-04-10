@@ -1,6 +1,7 @@
 import { db } from '../db/database';
 import { subscribeMutations } from '../db/storage';
 import type { SyncEntityType } from '../types';
+import { REMOTE_APPLIED_EVENT } from '../hooks/useRefreshOnRemote';
 import { applyRemoteBatch } from './applyRemote';
 import { drainReceiptUploads } from './receiptUploader';
 import {
@@ -211,14 +212,22 @@ async function sync(options: { pushOnly?: boolean } = {}): Promise<void> {
 
 async function runPull(): Promise<void> {
   let since = getLastPulledAt();
+  let appliedAny = false;
   for (let safety = 0; safety < 20; safety++) {
     const page = await pullDelta(since);
     if (page.entities.length > 0) {
       await applyRemoteBatch(page.entities);
+      appliedAny = true;
     }
     since = page.nextSince;
     setLastPulledAt(since);
     if (!page.hasMore) break;
+  }
+  // Tell data hooks (useTransactions, useAccounts, useUserPreferences, …)
+  // to re-read from Dexie now that remote rows have landed. This is what
+  // lets PairEntryScreen drop the window.location.reload() it used to do.
+  if (appliedAny) {
+    window.dispatchEvent(new CustomEvent(REMOTE_APPLIED_EVENT));
   }
 }
 

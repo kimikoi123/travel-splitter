@@ -1,12 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Goal } from '../types';
 import { loadGoals, addGoal as dbAdd, updateGoal as dbUpdate, deleteGoal as dbDelete } from '../db/storage';
+import { useRefreshOnRemote } from './useRefreshOnRemote';
 
 export function useGoals() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { loadGoals().then((g) => { setGoals(g); setLoading(false); }); }, []);
+  const refresh = useCallback(async () => {
+    const g = await loadGoals();
+    setGoals(g);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { void refresh(); }, [refresh]);
+  useRefreshOnRemote(refresh);
 
   const addGoal = useCallback(async (data: Omit<Goal, 'id' | 'createdAt'>) => {
     const goal: Goal = { ...data, id: crypto.randomUUID(), createdAt: new Date().toISOString() };

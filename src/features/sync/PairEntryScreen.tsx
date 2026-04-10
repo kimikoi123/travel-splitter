@@ -13,33 +13,41 @@ type Mode = 'scan' | 'manual';
 const TOKEN_ALPHABET = /^[2-9ABCDEFGHJKMNPQRSTVWXYZ]{6}$/;
 
 // Device-B flow: scan the QR from device A OR type the 6-character code,
-// then call joinVaultWithToken. On success we reload the page — that's
-// the simplest way to let every existing hook (useUserPreferences,
-// useTransactions, ...) pick up the freshly-pulled remote state.
-// A future phase can replace the reload with event-driven re-fetches.
+// then call joinVaultWithToken. On success the sync engine dispatches
+// `finverse:remote-applied` after pulling the vault, which every data
+// hook listens for via `useRefreshOnRemote`. So we just close the
+// overlay — hooks refresh themselves, and if the vault's prefs already
+// have `onboardingComplete: true`, App.tsx unmounts Onboarding.
 export default function PairEntryScreen({ onClose }: Props) {
   const [mode, setMode] = useState<Mode>('scan');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const trySubmit = useCallback(async (rawToken: string) => {
-    const token = rawToken.trim().toUpperCase();
-    if (!TOKEN_ALPHABET.test(token)) {
-      setError('That code does not look right — 6 characters, letters and digits (no 0, 1, O, I, L).');
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    try {
-      await joinVaultWithToken(token, `${navigator.platform}`);
-      // Reload so every data hook re-reads from the freshly-synced Dexie.
-      window.location.reload();
-    } catch (err) {
-      setBusy(false);
-      setError(err instanceof Error ? err.message : 'Could not pair. Try again.');
-    }
-  }, []);
+  const trySubmit = useCallback(
+    async (rawToken: string) => {
+      const token = rawToken.trim().toUpperCase();
+      if (!TOKEN_ALPHABET.test(token)) {
+        setError('That code does not look right — 6 characters, letters and digits (no 0, 1, O, I, L).');
+        return;
+      }
+      setBusy(true);
+      setError(null);
+      try {
+        await joinVaultWithToken(token, `${navigator.platform}`);
+        // joinVaultWithToken triggers a sync cycle which dispatches
+        // `finverse:remote-applied`. Every data hook listens for it and
+        // re-reads Dexie, so closing this overlay reveals the synced
+        // state underneath (Onboarding will unmount automatically once
+        // the pulled UserPreferences sets onboardingComplete = true).
+        onClose();
+      } catch (err) {
+        setBusy(false);
+        setError(err instanceof Error ? err.message : 'Could not pair. Try again.');
+      }
+    },
+    [onClose],
+  );
 
   const handleScan = useCallback(
     (value: string) => {

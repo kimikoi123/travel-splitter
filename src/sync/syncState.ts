@@ -9,6 +9,11 @@ export interface SyncSnapshot {
   lastSyncedAt: number | null;
   error: string | null;
   pendingCount: number;
+  // Number of receipts still being uploaded to Vercel Blob. Non-zero
+  // only while the receipt uploader is actively draining the queue;
+  // resets to 0 when drainReceiptUploads finishes (whether or not all
+  // uploads succeeded — failed ones retry on the next cycle).
+  uploadingReceipts: number;
 }
 
 const INITIAL: SyncSnapshot = {
@@ -16,6 +21,7 @@ const INITIAL: SyncSnapshot = {
   lastSyncedAt: null,
   error: null,
   pendingCount: 0,
+  uploadingReceipts: 0,
 };
 
 let current: SyncSnapshot = INITIAL;
@@ -46,6 +52,7 @@ function shallowEqual(a: SyncSnapshot, b: SyncSnapshot): boolean {
     a.status === b.status &&
     a.lastSyncedAt === b.lastSyncedAt &&
     a.error === b.error &&
-    a.pendingCount === b.pendingCount
+    a.pendingCount === b.pendingCount &&
+    a.uploadingReceipts === b.uploadingReceipts
   );
 }

@@ -48,6 +48,9 @@ export default function SyncSettingsSection() {
 
   const statusLabel = (() => {
     if (!sync.hasIdentity) return 'Offline only — sync is off';
+    if (sync.uploadingReceipts > 0) {
+      return `Uploading ${sync.uploadingReceipts} receipt${sync.uploadingReceipts === 1 ? '' : 's'}…`;
+    }
     if (sync.status === 'syncing') return 'Syncing…';
     if (sync.status === 'offline') return 'Offline — will sync when online';
     if (sync.status === 'error') return 'Sync error';

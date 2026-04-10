@@ -1,12 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { DebtEntry } from '../types';
 import { loadDebts, addDebt as dbAdd, updateDebt as dbUpdate, deleteDebt as dbDelete } from '../db/storage';
+import { useRefreshOnRemote } from './useRefreshOnRemote';
 
 export function useDebts() {
   const [debts, setDebts] = useState<DebtEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { loadDebts().then((d) => { setDebts(d); setLoading(false); }); }, []);
+  const refresh = useCallback(async () => {
+    const d = await loadDebts();
+    setDebts(d);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { void refresh(); }, [refresh]);
+  useRefreshOnRemote(refresh);
 
   const addDebt = useCallback(async (data: Omit<DebtEntry, 'id' | 'createdAt'>) => {
     const debt: DebtEntry = { ...data, id: crypto.randomUUID(), createdAt: new Date().toISOString() };

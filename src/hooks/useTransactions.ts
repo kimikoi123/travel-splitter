@@ -6,17 +6,20 @@ import {
   deleteTransaction as dbDeleteTransaction,
   updateTransaction as dbUpdateTransaction,
 } from '../db/storage';
+import { useRefreshOnRemote } from './useRefreshOnRemote';
 
 export function useTransactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    getTransactions().then((txns) => {
-      setTransactions(txns);
-      setLoading(false);
-    });
+  const refresh = useCallback(async () => {
+    const txns = await getTransactions();
+    setTransactions(txns);
+    setLoading(false);
   }, []);
+
+  useEffect(() => { void refresh(); }, [refresh]);
+  useRefreshOnRemote(refresh);
 
   const addTransaction = useCallback(async (txn: Omit<Transaction, 'id' | 'createdAt'>) => {
     const newTxn: Transaction = {

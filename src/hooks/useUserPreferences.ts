@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { UserPreferences } from '../types';
 import { loadUserPreferences, saveUserPreferences } from '../db/storage';
+import { useRefreshOnRemote } from './useRefreshOnRemote';
 
 const DEFAULT_PREFERENCES: UserPreferences = {
   id: 'default',
@@ -14,12 +15,14 @@ export function useUserPreferences() {
   const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_PREFERENCES);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadUserPreferences().then((prefs) => {
-      if (prefs) setPreferences(prefs);
-      setLoading(false);
-    });
+  const refresh = useCallback(async () => {
+    const prefs = await loadUserPreferences();
+    if (prefs) setPreferences(prefs);
+    setLoading(false);
   }, []);
+
+  useEffect(() => { void refresh(); }, [refresh]);
+  useRefreshOnRemote(refresh);
 
   const updatePreferences = useCallback(async (updates: Partial<UserPreferences>) => {
     const updated = { ...preferences, ...updates, id: 'default' } as UserPreferences;

@@ -6,6 +6,7 @@ import {
   updateBudget as dbUpdateBudget,
   deleteBudget as dbDeleteBudget,
 } from '../db/storage';
+import { useRefreshOnRemote } from './useRefreshOnRemote';
 
 export interface BudgetWithSpending extends Budget {
   spent: number;
@@ -17,12 +18,14 @@ export function useBudgets(transactions: Transaction[]) {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadBudgets().then((b) => {
-      setBudgets(b);
-      setLoading(false);
-    });
+  const refresh = useCallback(async () => {
+    const b = await loadBudgets();
+    setBudgets(b);
+    setLoading(false);
   }, []);
+
+  useEffect(() => { void refresh(); }, [refresh]);
+  useRefreshOnRemote(refresh);
 
   const addBudget = useCallback(async (data: Omit<Budget, 'id' | 'createdAt'>) => {
     const budget: Budget = {

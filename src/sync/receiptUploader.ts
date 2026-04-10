@@ -1,5 +1,6 @@
 import { db } from '../db/database';
 import { hasIdentity } from './deviceIdentity';
+import * as syncState from './syncState';
 import { uploadReceiptBlob } from './syncApi';
 
 // Drains any receipts that are still local-only (have `localBase64` but
@@ -29,6 +30,11 @@ export async function drainReceiptUploads(): Promise<number> {
     pending.push({ expenseId: row.expenseId, localBase64: row.localBase64 });
   }
   if (pending.length === 0) return 0;
+
+  // Reflect the backlog in the sync snapshot so the Settings UI can
+  // show "Uploading N receipts…" while we drain.
+  let remaining = pending.length;
+  syncState.update({ uploadingReceipts: remaining });
 
   let uploaded = 0;
   let cursor = 0;
@@ -61,11 +67,20 @@ export async function drainReceiptUploads(): Promise<number> {
       } catch (err) {
         console.warn(`Receipt upload failed for ${item.expenseId}:`, err);
         // Leave the row unchanged; next sync cycle will retry.
+      } finally {
+        remaining--;
+        syncState.update({ uploadingReceipts: Math.max(0, remaining) });
       }
     }
   }
 
-  const workers = Array.from({ length: Math.min(UPLOAD_CONCURRENCY, pending.length) }, () => worker());
-  await Promise.all(workers);
+  try {
+    const workers = Array.from({ length: Math.min(UPLOAD_CONCURRENCY, pending.length) }, () => worker());
+    await Promise.all(workers);
+  } finally {
+    // Safety net: always clear the counter even if the workers bailed
+    // early on a throw we didn't catch.
+    syncState.update({ uploadingReceipts: 0 });
+  }
   return uploaded;
 }

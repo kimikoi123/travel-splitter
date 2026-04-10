@@ -7,6 +7,7 @@ import {
   deleteAccount as dbDeleteAccount,
   batchUpdateSortOrder,
 } from '../db/storage';
+import { useRefreshOnRemote } from './useRefreshOnRemote';
 
 export const ACCOUNT_COLORS = [
   '#2d6a4f', '#0891b2', '#65a30d', '#2563eb',
@@ -17,12 +18,14 @@ export function useAccounts() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadAccounts().then((accs) => {
-      setAccounts(accs);
-      setLoading(false);
-    });
+  const refresh = useCallback(async () => {
+    const accs = await loadAccounts();
+    setAccounts(accs);
+    setLoading(false);
   }, []);
+
+  useEffect(() => { void refresh(); }, [refresh]);
+  useRefreshOnRemote(refresh);
 
   const addAccount = useCallback(async (data: Omit<Account, 'id' | 'createdAt' | 'sortOrder'>) => {
     const account: Account = {
