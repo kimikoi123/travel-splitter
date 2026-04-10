@@ -1,7 +1,7 @@
 import type { VercelRequest } from '@vercel/node';
-import { getSql } from './db.ts';
-import { verifyDeviceKey } from './hash.ts';
-import { HttpError } from './http.ts';
+import { getSql } from './db';
+import { verifyDeviceKey } from './hash';
+import { HttpError } from './http';
 
 export interface AuthContext {
   vaultId: string;

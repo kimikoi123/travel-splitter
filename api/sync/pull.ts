@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireAuth } from '../_lib/auth.ts';
-import { getSql } from '../_lib/db.ts';
-import { handleError, methodNotAllowed, readJson, sendJson } from '../_lib/http.ts';
+import { requireAuth } from '../_lib/auth';
+import { getSql } from '../_lib/db';
+import { handleError, methodNotAllowed, readJson, sendJson } from '../_lib/http';
 
 interface PullBody {
   since?: number;

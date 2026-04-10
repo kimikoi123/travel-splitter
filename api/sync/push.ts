@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireAuth } from '../_lib/auth.ts';
-import { getSql } from '../_lib/db.ts';
-import { handleError, HttpError, methodNotAllowed, readJson, sendJson } from '../_lib/http.ts';
+import { requireAuth } from '../_lib/auth';
+import { getSql } from '../_lib/db';
+import { handleError, HttpError, methodNotAllowed, readJson, sendJson } from '../_lib/http';
 
 interface PushChange {
   entityType?: string;
@@ -56,12 +56,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const rejected: { entityId: string; reason: string }[] = [];
 
     for (const change of changes) {
-      const validation = validate(change);
-      if (!validation.ok) {
-        rejected.push({ entityId: change.entityId ?? '', reason: validation.reason });
+      const { value, reason } = validate(change);
+      if (reason !== undefined || value === undefined) {
+        rejected.push({ entityId: change.entityId ?? '', reason: reason ?? 'invalid' });
         continue;
       }
-      const { entityType, entityId, data, updatedAt, deletedAt } = validation.value;
+      const { entityType, entityId, data, updatedAt, deletedAt } = value;
 
       const result = (await sql`
         INSERT INTO entities (vault_id, entity_type, entity_id, data, updated_at, deleted_at)
@@ -102,24 +102,34 @@ type ValidChange = {
   deletedAt?: number;
 };
 
-function validate(change: PushChange): { ok: true; value: ValidChange } | { ok: false; reason: string } {
+// Returns { value } on success or { reason } on failure — the two fields
+// are mutually exclusive by convention but NOT by TypeScript type, which
+// means downstream code can read either field without needing to narrow
+// a discriminated union. Deliberate: Vercel's remote build pipeline uses
+// a separate tsconfig for api/*.ts files and was dropping the narrowing
+// for the former `{ ok: true } | { ok: false }` shape.
+interface ValidationResult {
+  value?: ValidChange;
+  reason?: string;
+}
+
+function validate(change: PushChange): ValidationResult {
   if (!change.entityType || !ALLOWED_TYPES.has(change.entityType)) {
-    return { ok: false, reason: 'invalid-entity-type' };
+    return { reason: 'invalid-entity-type' };
   }
   if (!change.entityId || typeof change.entityId !== 'string') {
-    return { ok: false, reason: 'missing-entity-id' };
+    return { reason: 'missing-entity-id' };
   }
   if (typeof change.updatedAt !== 'number' || !Number.isFinite(change.updatedAt)) {
-    return { ok: false, reason: 'invalid-updated-at' };
+    return { reason: 'invalid-updated-at' };
   }
   if (change.deletedAt !== undefined && (typeof change.deletedAt !== 'number' || !Number.isFinite(change.deletedAt))) {
-    return { ok: false, reason: 'invalid-deleted-at' };
+    return { reason: 'invalid-deleted-at' };
   }
   if (change.data === undefined) {
-    return { ok: false, reason: 'missing-data' };
+    return { reason: 'missing-data' };
   }
   return {
-    ok: true,
     value: {
       entityType: change.entityType,
       entityId: change.entityId,

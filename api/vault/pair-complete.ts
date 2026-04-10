@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { randomUUID } from 'node:crypto';
-import { getSql } from '../_lib/db.ts';
-import { generateDeviceKey, hashDeviceKey } from '../_lib/hash.ts';
-import { handleError, HttpError, methodNotAllowed, readJson, sendJson } from '../_lib/http.ts';
+import { getSql } from '../_lib/db';
+import { generateDeviceKey, hashDeviceKey } from '../_lib/hash';
+import { handleError, HttpError, methodNotAllowed, readJson, sendJson } from '../_lib/http';
 
 interface PairBody {
   token?: string;
