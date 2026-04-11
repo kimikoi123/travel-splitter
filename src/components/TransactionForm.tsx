@@ -161,7 +161,7 @@ export default function TransactionForm({
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             aria-label="Transaction amount"
-            className="w-full text-7xl font-bold text-text-primary text-center bg-transparent border-none outline-none placeholder:text-text-secondary/30 tracking-tight"
+            className="w-full text-7xl md:text-8xl lg:text-9xl font-bold text-text-primary text-center bg-transparent border-none outline-none placeholder:text-text-secondary/30 tracking-tight"
             autoFocus
           />
           {isKNotation(amount) && (
