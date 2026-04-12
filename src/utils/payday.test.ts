@@ -18,15 +18,15 @@ describe('getPaydayOccurrences', () => {
     it('returns one occurrence when payday falls within window', () => {
       const result = getPaydayOccurrences(config, day(2026, 4, 1), day(2026, 4, 30));
       expect(result).toHaveLength(1);
-      expect(result[0].date).toEqual(day(2026, 4, 15));
-      expect(result[0].amount).toBe(10000);
+      expect(result[0]!.date).toEqual(day(2026, 4, 15));
+      expect(result[0]!.amount).toBe(10000);
     });
 
     it('returns two occurrences when window spans two months', () => {
       const result = getPaydayOccurrences(config, day(2026, 4, 1), day(2026, 5, 31));
       expect(result).toHaveLength(2);
-      expect(result[0].date).toEqual(day(2026, 4, 15));
-      expect(result[1].date).toEqual(day(2026, 5, 15));
+      expect(result[0]!.date).toEqual(day(2026, 4, 15));
+      expect(result[1]!.date).toEqual(day(2026, 5, 15));
     });
 
     it('returns empty when payday is before window', () => {
@@ -43,16 +43,16 @@ describe('getPaydayOccurrences', () => {
     it('returns both paydays within a full month window', () => {
       const result = getPaydayOccurrences(config, day(2026, 4, 1), day(2026, 4, 30));
       expect(result).toHaveLength(2);
-      expect(result[0].date).toEqual(day(2026, 4, 15));
-      expect(result[0].amount).toBe(12000);
-      expect(result[1].date).toEqual(day(2026, 4, 30));
-      expect(result[1].amount).toBe(15000);
+      expect(result[0]!.date).toEqual(day(2026, 4, 15));
+      expect(result[0]!.amount).toBe(12000);
+      expect(result[1]!.date).toEqual(day(2026, 4, 30));
+      expect(result[1]!.amount).toBe(15000);
     });
 
     it('returns only the one that falls in a partial window', () => {
       const result = getPaydayOccurrences(config, day(2026, 4, 20), day(2026, 4, 30));
       expect(result).toHaveLength(1);
-      expect(result[0].date).toEqual(day(2026, 4, 30));
+      expect(result[0]!.date).toEqual(day(2026, 4, 30));
     });
   });
 
@@ -64,17 +64,17 @@ describe('getPaydayOccurrences', () => {
     it('returns occurrences every 14 days from refDate within window', () => {
       const result = getPaydayOccurrences(config, day(2026, 4, 1), day(2026, 5, 1));
       expect(result).toHaveLength(3);
-      expect(result[0].date).toEqual(day(2026, 4, 3));
-      expect(result[1].date).toEqual(day(2026, 4, 17));
-      expect(result[2].date).toEqual(day(2026, 5, 1));
+      expect(result[0]!.date).toEqual(day(2026, 4, 3));
+      expect(result[1]!.date).toEqual(day(2026, 4, 17));
+      expect(result[2]!.date).toEqual(day(2026, 5, 1));
     });
 
     it('works when refDate is in the past', () => {
       const result = getPaydayOccurrences(config, day(2026, 5, 1), day(2026, 5, 31));
       expect(result).toHaveLength(3);
-      expect(result[0].date).toEqual(day(2026, 5, 1));
-      expect(result[1].date).toEqual(day(2026, 5, 15));
-      expect(result[2].date).toEqual(day(2026, 5, 29));
+      expect(result[0]!.date).toEqual(day(2026, 5, 1));
+      expect(result[1]!.date).toEqual(day(2026, 5, 15));
+      expect(result[2]!.date).toEqual(day(2026, 5, 29));
     });
   });
 
@@ -86,10 +86,10 @@ describe('getPaydayOccurrences', () => {
     it('returns occurrences every 7 days from refDate within window', () => {
       const result = getPaydayOccurrences(config, day(2026, 4, 1), day(2026, 4, 30));
       expect(result).toHaveLength(4);
-      expect(result[0].date).toEqual(day(2026, 4, 3));
-      expect(result[1].date).toEqual(day(2026, 4, 10));
-      expect(result[2].date).toEqual(day(2026, 4, 17));
-      expect(result[3].date).toEqual(day(2026, 4, 24));
+      expect(result[0]!.date).toEqual(day(2026, 4, 3));
+      expect(result[1]!.date).toEqual(day(2026, 4, 10));
+      expect(result[2]!.date).toEqual(day(2026, 4, 17));
+      expect(result[3]!.date).toEqual(day(2026, 4, 24));
     });
   });
 });

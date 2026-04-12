@@ -80,8 +80,8 @@ export function getNearestPayday(config: PaydayConfig | undefined): NearestPayda
   const farFuture = new Date(today);
   farFuture.setFullYear(farFuture.getFullYear() + 1);
   const occurrences = getPaydayOccurrences(config, today, farFuture);
-  if (occurrences.length === 0) return null;
   const nearest = occurrences[0];
+  if (!nearest) return null;
   const daysUntil = Math.round((nearest.date.getTime() - today.getTime()) / 86400000);
   return { date: nearest.date, amount: nearest.amount, currency: nearest.currency, daysUntil };
 }
