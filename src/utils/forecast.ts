@@ -234,6 +234,8 @@ export interface ForecastTimeline {
   totalIn: number;
   totalOut: number;
   net: number;
+  startingBalance: number;
+  projectedBalance: number;
 }
 
 /** Monthly-only next occurrence (used for payday, installments, credit cards) */
@@ -383,5 +385,12 @@ export function computeTimeline(params: {
     }
   }
 
-  return { events, totalIn, totalOut, net: totalIn - totalOut };
+  const startingBalance = accounts.reduce((sum, acc) => {
+    if (acc.type === 'credit') return sum - acc.balance;
+    if (acc.type === 'stocks' || acc.type === 'crypto') return sum + (acc.units ?? 0) * (acc.pricePerUnit ?? 0);
+    return sum + acc.balance;
+  }, 0);
+  const net = totalIn - totalOut;
+
+  return { events, totalIn, totalOut, net, startingBalance, projectedBalance: startingBalance + net };
 }
