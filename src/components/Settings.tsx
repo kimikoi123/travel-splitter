@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { Sun, Moon, Monitor, Download, Upload, EyeOff } from 'lucide-react';
+import { Sun, Moon, Monitor, Download, Upload, EyeOff, Calculator, ChevronRight } from 'lucide-react';
 import type { UserPreferences, ThemePreference } from '../types';
 import { CURRENCIES } from '../utils/currencies';
 import SyncSettingsSection from '../features/sync/SyncSettingsSection';
@@ -14,6 +14,7 @@ interface SettingsProps {
   onBack: () => void;
   privacyMode?: boolean;
   onTogglePrivacy?: () => void;
+  onOpenTaxCalculator: () => void;
 }
 
 const THEME_OPTIONS: { value: ThemePreference; label: string; Icon: typeof Sun }[] = [
@@ -31,6 +32,7 @@ export default function Settings({
   onImport,
   privacyMode,
   onTogglePrivacy,
+  onOpenTaxCalculator,
 }: SettingsProps) {
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(preferences.displayName);
@@ -297,6 +299,26 @@ export default function Settings({
             </div>
           </section>
         )}
+
+        {/* Tools Section */}
+        <section>
+          <h2 className="text-[11px] text-text-secondary font-semibold uppercase tracking-wider mb-2 px-1">
+            Tools
+          </h2>
+          <div className="bg-surface rounded-2xl border border-border overflow-hidden">
+            <button
+              type="button"
+              onClick={onOpenTaxCalculator}
+              className="w-full flex items-center justify-between py-3 px-4 text-left hover:bg-surface-light transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Calculator size={18} className="text-text-secondary" />
+                <span className="text-sm text-text-primary">PH Tax Calculator</span>
+              </div>
+              <ChevronRight size={16} className="text-text-secondary" />
+            </button>
+          </div>
+        </section>
 
         {/* Data Section */}
         <section>
