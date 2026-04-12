@@ -156,15 +156,51 @@ export interface Budget {
 
 export type ThemePreference = 'light' | 'dark' | 'system';
 
+export type PaydayFrequency = 'monthly' | 'semi-monthly' | 'biweekly' | 'weekly';
+
+export interface PaydayConfigMonthly {
+  frequency: 'monthly';
+  day: number;
+  amount: number;
+  currency: string;
+}
+
+export interface PaydayConfigSemiMonthly {
+  frequency: 'semi-monthly';
+  day1: number;
+  amount1: number;
+  day2: number;
+  amount2: number;
+  currency: string;
+}
+
+export interface PaydayConfigBiweekly {
+  frequency: 'biweekly';
+  refDate: string;
+  amount: number;
+  currency: string;
+}
+
+export interface PaydayConfigWeekly {
+  frequency: 'weekly';
+  refDate: string;
+  amount: number;
+  currency: string;
+}
+
+export type PaydayConfig =
+  | PaydayConfigMonthly
+  | PaydayConfigSemiMonthly
+  | PaydayConfigBiweekly
+  | PaydayConfigWeekly;
+
 export interface UserPreferences {
-  id: string; // always 'default' (singleton row)
+  id: string;
   displayName: string;
   defaultCurrency: string;
   theme: ThemePreference;
   onboardingComplete: boolean;
-  paydayDay?: number;        // day of month (1-31)
-  paydayAmount?: number;
-  paydayCurrency?: string;
+  paydayConfig?: PaydayConfig;
   privacyMode?: boolean;
   updatedAt?: number;
 }
