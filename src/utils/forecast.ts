@@ -385,11 +385,14 @@ export function computeTimeline(params: {
     }
   }
 
-  const startingBalance = accounts.reduce((sum, acc) => {
-    if (acc.type === 'credit') return sum - acc.balance;
-    if (acc.type === 'stocks' || acc.type === 'crypto') return sum + (acc.units ?? 0) * (acc.pricePerUnit ?? 0);
-    return sum + acc.balance;
-  }, 0);
+  const startingBalance = accounts
+    .filter(a => a.type === 'debit' || a.type === 'ewallet')
+    .reduce((sum, a) => {
+      const bal = a.currency === defaultCurrency
+        ? a.balance
+        : convertToBase(a.balance, a.currency, defaultCurrency, exchangeRates);
+      return sum + bal;
+    }, 0);
   const net = totalIn - totalOut;
 
   return { events, totalIn, totalOut, net, startingBalance, projectedBalance: startingBalance + net };

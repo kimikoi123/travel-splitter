@@ -158,6 +158,7 @@ export default function CashflowForecast({
   }, [timeline.events]);
 
   const netPositive = timeline.net >= 0;
+  const projectedPositive = timeline.projectedBalance >= 0;
 
   return (
     <div className="max-w-2xl mx-auto w-full p-4 sm:p-6 animate-slide-in-right">
@@ -176,6 +177,49 @@ export default function CashflowForecast({
           </h1>
           <p className="text-xs text-text-secondary">Next 30 days</p>
         </div>
+      </div>
+
+      {/* Projected balance hero card */}
+      <div className="bg-surface rounded-2xl border border-border p-4 sm:p-5 mb-4">
+        <p className="text-[10px] font-semibold text-text-secondary tracking-wider mb-3">
+          PROJECTED BALANCE
+        </p>
+        <div className="flex items-end justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-xs text-text-secondary mb-0.5">Today</p>
+            <p
+              className={`text-lg font-bold ${timeline.startingBalance >= 0 ? 'text-text-primary' : 'text-danger'}`}
+              style={{ fontVariantNumeric: 'tabular-nums' }}
+            >
+              {timeline.startingBalance < 0 && '-'}{formatCurrency(Math.abs(timeline.startingBalance), defaultCurrency)}
+            </p>
+          </div>
+          <div className="text-text-tertiary text-lg shrink-0">→</div>
+          <div className="min-w-0 text-right">
+            <p className="text-xs text-text-secondary mb-0.5">In 30 days</p>
+            <p
+              className={`text-lg font-bold ${projectedPositive ? 'text-success' : 'text-danger'}`}
+              style={{ fontVariantNumeric: 'tabular-nums' }}
+            >
+              {!projectedPositive && '-'}{formatCurrency(Math.abs(timeline.projectedBalance), defaultCurrency)}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-1.5 mt-2">
+          <span
+            className={`text-xs font-semibold ${netPositive ? 'text-success' : 'text-danger'}`}
+            style={{ fontVariantNumeric: 'tabular-nums' }}
+          >
+            {netPositive ? '↑' : '↓'} {netPositive ? '+' : '-'}{formatCurrency(Math.abs(timeline.net), defaultCurrency)}
+          </span>
+        </div>
+        {!projectedPositive && (
+          <div className="mt-3 bg-danger/10 rounded-xl px-3 py-2">
+            <p className="text-xs font-medium text-danger">
+              You may run short — projected balance is negative
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Summary cards */}
