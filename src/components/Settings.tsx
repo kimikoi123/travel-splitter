@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { Sun, Moon, Monitor, Download, Upload, EyeOff, Calculator, ChevronRight } from 'lucide-react';
-import type { UserPreferences, ThemePreference } from '../types';
+import type { UserPreferences, ThemePreference, PaydayConfig, PaydayFrequency } from '../types';
 import { CURRENCIES } from '../utils/currencies';
 import SyncSettingsSection from '../features/sync/SyncSettingsSection';
 
@@ -37,8 +37,7 @@ export default function Settings({
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(preferences.displayName);
   const [editingCurrency, setEditingCurrency] = useState(false);
-  const [paydayDayError, setPaydayDayError] = useState<string | null>(null);
-  const [paydayAmountError, setPaydayAmountError] = useState<string | null>(null);
+  const [paydayErrors, setPaydayErrors] = useState<Record<string, string | null>>({});
   const fileRef = useRef<HTMLInputElement>(null);
 
   const saveName = useCallback(() => {
@@ -62,44 +61,76 @@ export default function Settings({
     setEditingCurrency(false);
   };
 
-  const handlePaydayDayBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+  const paydayConfig = preferences.paydayConfig;
+  const paydayFrequency: PaydayFrequency = paydayConfig?.frequency ?? 'monthly';
+
+  const handlePaydayFrequencyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const freq = e.target.value as PaydayFrequency;
+    const currency = paydayConfig?.currency ?? preferences.defaultCurrency;
+    let newConfig: PaydayConfig;
+    switch (freq) {
+      case 'monthly':
+        newConfig = { frequency: 'monthly', day: 15, amount: 0, currency };
+        break;
+      case 'semi-monthly':
+        newConfig = { frequency: 'semi-monthly', day1: 15, amount1: 0, day2: 30, amount2: 0, currency };
+        break;
+      case 'biweekly':
+        newConfig = { frequency: 'biweekly', refDate: new Date().toISOString().slice(0, 10), amount: 0, currency };
+        break;
+      case 'weekly':
+        newConfig = { frequency: 'weekly', refDate: new Date().toISOString().slice(0, 10), amount: 0, currency };
+        break;
+    }
+    setPaydayErrors({});
+    onUpdate({ paydayConfig: newConfig });
+  };
+
+  const updatePaydayField = (field: string, value: unknown) => {
+    if (!paydayConfig) return;
+    onUpdate({ paydayConfig: { ...paydayConfig, [field]: value } as PaydayConfig });
+  };
+
+  const handleDayBlur = (field: string) => (e: React.FocusEvent<HTMLInputElement>) => {
     const raw = e.target.value;
     if (raw === '') {
-      onUpdate({ paydayDay: undefined });
-      setPaydayDayError(null);
+      setPaydayErrors(prev => ({ ...prev, [field]: null }));
       return;
     }
     const val = parseInt(raw, 10);
     if (isNaN(val) || val < 1 || val > 31) {
-      setPaydayDayError('Enter a day between 1 and 31.');
+      setPaydayErrors(prev => ({ ...prev, [field]: 'Enter a day between 1 and 31.' }));
       return;
     }
-    setPaydayDayError(null);
-    onUpdate({ paydayDay: val });
+    setPaydayErrors(prev => ({ ...prev, [field]: null }));
+    updatePaydayField(field, val);
   };
 
-  const handlePaydayAmountBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+  const handleAmountBlur = (field: string) => (e: React.FocusEvent<HTMLInputElement>) => {
     const raw = e.target.value;
     if (raw === '') {
-      onUpdate({ paydayAmount: undefined });
-      setPaydayAmountError(null);
+      setPaydayErrors(prev => ({ ...prev, [field]: null }));
       return;
     }
     const val = parseFloat(raw);
     if (isNaN(val)) {
-      setPaydayAmountError('Enter a valid amount.');
+      setPaydayErrors(prev => ({ ...prev, [field]: 'Enter a valid amount.' }));
       return;
     }
     if (val <= 0) {
-      setPaydayAmountError('Amount must be greater than 0.');
+      setPaydayErrors(prev => ({ ...prev, [field]: 'Amount must be greater than 0.' }));
       return;
     }
-    setPaydayAmountError(null);
-    onUpdate({ paydayAmount: val });
+    setPaydayErrors(prev => ({ ...prev, [field]: null }));
+    updatePaydayField(field, val);
+  };
+
+  const handleRefDateChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    updatePaydayField(field, e.target.value);
   };
 
   const handlePaydayCurrencyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    onUpdate({ paydayCurrency: e.target.value });
+    updatePaydayField('currency', e.target.value);
   };
 
   const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -183,69 +214,130 @@ export default function Settings({
             Payday
           </h2>
           <div className="bg-surface rounded-2xl border border-border overflow-hidden">
-            {/* Day of month */}
-            <div className="py-3 px-4 border-b border-border">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-text-primary">Day of month</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={31}
-                  defaultValue={preferences.paydayDay ?? ''}
-                  placeholder="Not set"
-                  onBlur={handlePaydayDayBlur}
-                  aria-invalid={paydayDayError ? true : undefined}
-                  className={`bg-surface border rounded-xl py-2 px-3 text-sm text-text-primary outline-none focus:ring-2 transition-shadow w-24 text-right placeholder:text-text-secondary/50 ${
-                    paydayDayError
-                      ? 'border-danger/60 focus:ring-danger/30'
-                      : 'border-border focus:ring-primary/40'
-                  }`}
-                />
-              </div>
-              {paydayDayError && (
-                <p className="text-xs text-danger mt-1.5 text-right">{paydayDayError}</p>
-              )}
-            </div>
-
-            {/* Amount */}
-            <div className="py-3 px-4 border-b border-border">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-text-primary">Amount</span>
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  defaultValue={preferences.paydayAmount ?? ''}
-                  placeholder="Not set"
-                  onBlur={handlePaydayAmountBlur}
-                  aria-invalid={paydayAmountError ? true : undefined}
-                  className={`bg-surface border rounded-xl py-2 px-3 text-sm text-text-primary outline-none focus:ring-2 transition-shadow w-32 text-right placeholder:text-text-secondary/50 ${
-                    paydayAmountError
-                      ? 'border-danger/60 focus:ring-danger/30'
-                      : 'border-border focus:ring-primary/40'
-                  }`}
-                />
-              </div>
-              {paydayAmountError && (
-                <p className="text-xs text-danger mt-1.5 text-right">{paydayAmountError}</p>
-              )}
-            </div>
-
-            {/* Currency */}
-            <div className="flex justify-between items-center py-3 px-4">
-              <span className="text-sm text-text-primary">Currency</span>
+            {/* Frequency */}
+            <div className="flex justify-between items-center py-3 px-4 border-b border-border">
+              <span className="text-sm text-text-primary">Frequency</span>
               <select
-                value={preferences.paydayCurrency ?? preferences.defaultCurrency}
-                onChange={handlePaydayCurrencyChange}
+                value={paydayFrequency}
+                onChange={handlePaydayFrequencyChange}
                 className="bg-surface border border-border rounded-xl py-2 px-3 text-sm text-text-primary outline-none focus:ring-2 focus:ring-primary/40 transition-shadow appearance-none select-chevron"
               >
-                {Object.entries(CURRENCIES).map(([code, config]) => (
-                  <option key={code} value={code}>
-                    {config.symbol} {code} — {config.name}
-                  </option>
-                ))}
+                <option value="monthly">Monthly</option>
+                <option value="semi-monthly">Semi-monthly</option>
+                <option value="biweekly">Biweekly</option>
+                <option value="weekly">Weekly</option>
               </select>
             </div>
+
+            {/* Monthly fields */}
+            {paydayConfig?.frequency === 'monthly' && (
+              <>
+                <div className="py-3 px-4 border-b border-border">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-text-primary">Day of month</span>
+                    <input type="number" min={1} max={31} defaultValue={paydayConfig.day || ''} placeholder="15" onBlur={handleDayBlur('day')} className={`bg-surface border rounded-xl py-2 px-3 text-sm text-text-primary outline-none focus:ring-2 transition-shadow w-24 text-right placeholder:text-text-secondary/50 ${paydayErrors.day ? 'border-danger/60 focus:ring-danger/30' : 'border-border focus:ring-primary/40'}`} />
+                  </div>
+                  {paydayErrors.day && <p className="text-xs text-danger mt-1.5 text-right">{paydayErrors.day}</p>}
+                </div>
+                <div className="py-3 px-4 border-b border-border">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-text-primary">Amount</span>
+                    <input type="number" min={0} step="0.01" defaultValue={paydayConfig.amount || ''} placeholder="0.00" onBlur={handleAmountBlur('amount')} className={`bg-surface border rounded-xl py-2 px-3 text-sm text-text-primary outline-none focus:ring-2 transition-shadow w-32 text-right placeholder:text-text-secondary/50 ${paydayErrors.amount ? 'border-danger/60 focus:ring-danger/30' : 'border-border focus:ring-primary/40'}`} />
+                  </div>
+                  {paydayErrors.amount && <p className="text-xs text-danger mt-1.5 text-right">{paydayErrors.amount}</p>}
+                </div>
+              </>
+            )}
+
+            {/* Semi-monthly fields */}
+            {paydayConfig?.frequency === 'semi-monthly' && (
+              <>
+                <div className="py-3 px-4 border-b border-border">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-text-primary">1st payday (day)</span>
+                    <input type="number" min={1} max={31} defaultValue={paydayConfig.day1 || ''} placeholder="15" onBlur={handleDayBlur('day1')} className={`bg-surface border rounded-xl py-2 px-3 text-sm text-text-primary outline-none focus:ring-2 transition-shadow w-24 text-right placeholder:text-text-secondary/50 ${paydayErrors.day1 ? 'border-danger/60 focus:ring-danger/30' : 'border-border focus:ring-primary/40'}`} />
+                  </div>
+                  {paydayErrors.day1 && <p className="text-xs text-danger mt-1.5 text-right">{paydayErrors.day1}</p>}
+                </div>
+                <div className="py-3 px-4 border-b border-border">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-text-primary">1st payday amount</span>
+                    <input type="number" min={0} step="0.01" defaultValue={paydayConfig.amount1 || ''} placeholder="0.00" onBlur={handleAmountBlur('amount1')} className={`bg-surface border rounded-xl py-2 px-3 text-sm text-text-primary outline-none focus:ring-2 transition-shadow w-32 text-right placeholder:text-text-secondary/50 ${paydayErrors.amount1 ? 'border-danger/60 focus:ring-danger/30' : 'border-border focus:ring-primary/40'}`} />
+                  </div>
+                  {paydayErrors.amount1 && <p className="text-xs text-danger mt-1.5 text-right">{paydayErrors.amount1}</p>}
+                </div>
+                <div className="py-3 px-4 border-b border-border">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-text-primary">2nd payday (day)</span>
+                    <input type="number" min={1} max={31} defaultValue={paydayConfig.day2 || ''} placeholder="30" onBlur={handleDayBlur('day2')} className={`bg-surface border rounded-xl py-2 px-3 text-sm text-text-primary outline-none focus:ring-2 transition-shadow w-24 text-right placeholder:text-text-secondary/50 ${paydayErrors.day2 ? 'border-danger/60 focus:ring-danger/30' : 'border-border focus:ring-primary/40'}`} />
+                  </div>
+                  {paydayErrors.day2 && <p className="text-xs text-danger mt-1.5 text-right">{paydayErrors.day2}</p>}
+                </div>
+                <div className="py-3 px-4 border-b border-border">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-text-primary">2nd payday amount</span>
+                    <input type="number" min={0} step="0.01" defaultValue={paydayConfig.amount2 || ''} placeholder="0.00" onBlur={handleAmountBlur('amount2')} className={`bg-surface border rounded-xl py-2 px-3 text-sm text-text-primary outline-none focus:ring-2 transition-shadow w-32 text-right placeholder:text-text-secondary/50 ${paydayErrors.amount2 ? 'border-danger/60 focus:ring-danger/30' : 'border-border focus:ring-primary/40'}`} />
+                  </div>
+                  {paydayErrors.amount2 && <p className="text-xs text-danger mt-1.5 text-right">{paydayErrors.amount2}</p>}
+                </div>
+              </>
+            )}
+
+            {/* Biweekly fields */}
+            {paydayConfig?.frequency === 'biweekly' && (
+              <>
+                <div className="py-3 px-4 border-b border-border">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-text-primary">Last payday date</span>
+                    <input type="date" defaultValue={paydayConfig.refDate} onChange={handleRefDateChange('refDate')} className="bg-surface border border-border rounded-xl py-2 px-3 text-sm text-text-primary outline-none focus:ring-2 focus:ring-primary/40 transition-shadow" />
+                  </div>
+                </div>
+                <div className="py-3 px-4 border-b border-border">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-text-primary">Amount</span>
+                    <input type="number" min={0} step="0.01" defaultValue={paydayConfig.amount || ''} placeholder="0.00" onBlur={handleAmountBlur('amount')} className={`bg-surface border rounded-xl py-2 px-3 text-sm text-text-primary outline-none focus:ring-2 transition-shadow w-32 text-right placeholder:text-text-secondary/50 ${paydayErrors.amount ? 'border-danger/60 focus:ring-danger/30' : 'border-border focus:ring-primary/40'}`} />
+                  </div>
+                  {paydayErrors.amount && <p className="text-xs text-danger mt-1.5 text-right">{paydayErrors.amount}</p>}
+                </div>
+              </>
+            )}
+
+            {/* Weekly fields */}
+            {paydayConfig?.frequency === 'weekly' && (
+              <>
+                <div className="py-3 px-4 border-b border-border">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-text-primary">Last payday date</span>
+                    <input type="date" defaultValue={paydayConfig.refDate} onChange={handleRefDateChange('refDate')} className="bg-surface border border-border rounded-xl py-2 px-3 text-sm text-text-primary outline-none focus:ring-2 focus:ring-primary/40 transition-shadow" />
+                  </div>
+                </div>
+                <div className="py-3 px-4 border-b border-border">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-text-primary">Amount</span>
+                    <input type="number" min={0} step="0.01" defaultValue={paydayConfig.amount || ''} placeholder="0.00" onBlur={handleAmountBlur('amount')} className={`bg-surface border rounded-xl py-2 px-3 text-sm text-text-primary outline-none focus:ring-2 transition-shadow w-32 text-right placeholder:text-text-secondary/50 ${paydayErrors.amount ? 'border-danger/60 focus:ring-danger/30' : 'border-border focus:ring-primary/40'}`} />
+                  </div>
+                  {paydayErrors.amount && <p className="text-xs text-danger mt-1.5 text-right">{paydayErrors.amount}</p>}
+                </div>
+              </>
+            )}
+
+            {/* Currency (shared across all frequencies) */}
+            {paydayConfig && (
+              <div className="flex justify-between items-center py-3 px-4">
+                <span className="text-sm text-text-primary">Currency</span>
+                <select
+                  value={paydayConfig.currency ?? preferences.defaultCurrency}
+                  onChange={handlePaydayCurrencyChange}
+                  className="bg-surface border border-border rounded-xl py-2 px-3 text-sm text-text-primary outline-none focus:ring-2 focus:ring-primary/40 transition-shadow appearance-none select-chevron"
+                >
+                  {Object.entries(CURRENCIES).map(([code, config]) => (
+                    <option key={code} value={code}>
+                      {config.symbol} {code} — {config.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         </section>
 
