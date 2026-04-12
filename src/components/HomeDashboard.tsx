@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
 import { TrendingUp } from 'lucide-react';
-import type { Transaction } from '../types';
+import type { Transaction, PaydayConfig } from '../types';
 import { formatCurrency } from '../utils/currencies';
 import { getFinanceCategoryDef } from '../utils/categories';
 import { getNextRecurringDate } from '../utils/forecast';
+import { getNearestPayday } from '../utils/payday';
 import QuickAddBar from './QuickAddBar';
 import SpendingHeatmap from './SpendingHeatmap';
 import type { ParsedTransaction } from '../utils/transactionParser';
@@ -12,9 +13,7 @@ interface HomeDashboardProps {
   displayName: string;
   transactions: Transaction[];
   defaultCurrency: string;
-  paydayDay?: number;
-  paydayAmount?: number;
-  paydayCurrency?: string;
+  paydayConfig?: PaydayConfig;
   onQuickAdd?: (parsed: ParsedTransaction) => void;
 }
 
@@ -54,9 +53,7 @@ export default function HomeDashboard({
   displayName,
   transactions,
   defaultCurrency,
-  paydayDay,
-  paydayAmount,
-  paydayCurrency,
+  paydayConfig,
   onQuickAdd,
 }: HomeDashboardProps) {
   const [period, setPeriod] = useState<'day' | 'week' | 'month'>(() => {
@@ -162,26 +159,7 @@ export default function HomeDashboard({
   );
 
   // --- Payday countdown ---
-  const paydayInfo = useMemo(() => {
-    if (paydayDay == null) return null;
-    const today = new Date();
-    const currentDay = today.getDate();
-    const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-    let daysUntilPayday: number;
-    if (currentDay <= paydayDay) {
-      daysUntilPayday = paydayDay - currentDay;
-    } else {
-      daysUntilPayday = daysInMonth - currentDay + paydayDay;
-    }
-    const nextPaydate = new Date(today);
-    if (currentDay <= paydayDay) {
-      nextPaydate.setDate(paydayDay);
-    } else {
-      nextPaydate.setMonth(nextPaydate.getMonth() + 1);
-      nextPaydate.setDate(paydayDay);
-    }
-    return { daysUntilPayday, nextPaydate };
-  }, [paydayDay]);
+  const paydayInfo = useMemo(() => getNearestPayday(paydayConfig), [paydayConfig]);
 
   // --- Upcoming recurring transactions ---
   const upcomingRecurring = useMemo(() => {
@@ -323,23 +301,21 @@ export default function HomeDashboard({
                 <p className="text-[10px] uppercase text-text-secondary font-semibold tracking-wider">
                   DAYS UNTIL PAYDAY
                 </p>
-                {paydayInfo.daysUntilPayday === 0 ? (
+                {paydayInfo.daysUntil === 0 ? (
                   <p className="text-xl font-bold text-primary">Payday!</p>
                 ) : (
                   <p className="text-xl font-bold text-text-primary">
-                    {paydayInfo.daysUntilPayday} day{paydayInfo.daysUntilPayday !== 1 ? 's' : ''}
+                    {paydayInfo.daysUntil} day{paydayInfo.daysUntil !== 1 ? 's' : ''}
                   </p>
                 )}
               </div>
             </div>
             <div className="text-right">
-              {paydayAmount != null && (
-                <p className="font-semibold text-primary">
-                  {formatCurrency(paydayAmount, paydayCurrency ?? defaultCurrency)}
-                </p>
-              )}
+              <p className="font-semibold text-primary">
+                {formatCurrency(paydayInfo.amount, paydayInfo.currency)}
+              </p>
               <p className="text-xs text-text-secondary">
-                {formatShortDate(paydayInfo.nextPaydate)}
+                {formatShortDate(paydayInfo.date)}
               </p>
             </div>
           </div>
