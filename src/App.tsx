@@ -555,6 +555,7 @@ function App() {
         activeTab={activeTab}
         onTabChange={(tab) => {
           setActiveTab(tab);
+          setShowSettings(false);
           if (tab !== 'wallet') setSelectedAccountId(null);
           if (tab !== 'plan') { setActiveTrip(null); setShowCashflowForecast(false); setShowPlannedPayments(false); setShowBudgetList(false); setShowGoalList(false); setShowDebtList(false); setShowInstallmentList(false); }
         }}
