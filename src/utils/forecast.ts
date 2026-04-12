@@ -1,6 +1,7 @@
-import type { Transaction, Installment, DebtEntry, Account, ExchangeRates, RecurringFrequency } from '../types';
+import type { Transaction, Installment, DebtEntry, Account, ExchangeRates, RecurringFrequency, PaydayConfig } from '../types';
 import { getFinanceCategoryDef } from './categories';
 import { convertToBase } from './currencies';
+import { getPaydayOccurrences } from './payday';
 
 // --- Recurring occurrence helpers ---
 
@@ -249,9 +250,7 @@ export function getNextOccurrence(recurringDay: number): Date {
 
 export function computeTimeline(params: {
   transactions: Transaction[];
-  paydayDay?: number;
-  paydayAmount?: number;
-  paydayCurrency?: string;
+  paydayConfig?: PaydayConfig;
   installments: Installment[];
   debts: DebtEntry[];
   accounts: Account[];
@@ -261,9 +260,7 @@ export function computeTimeline(params: {
 }): ForecastTimeline {
   const {
     transactions,
-    paydayDay,
-    paydayAmount,
-    paydayCurrency,
+    paydayConfig,
     installments,
     debts,
     accounts,
@@ -297,15 +294,15 @@ export function computeTimeline(params: {
   }
 
   // 2. Payday
-  if (paydayDay != null && paydayAmount != null && paydayAmount > 0) {
-    const next = getNextOccurrence(paydayDay);
-    if (next >= today && next <= endDate) {
+  if (paydayConfig) {
+    const occurrences = getPaydayOccurrences(paydayConfig, today, endDate);
+    for (const occ of occurrences) {
       events.push({
-        id: 'payday',
-        date: next,
+        id: `payday-${dateKey(occ.date)}`,
+        date: occ.date,
         description: 'Payday',
-        amount: paydayAmount,
-        currency: paydayCurrency ?? defaultCurrency,
+        amount: occ.amount,
+        currency: occ.currency,
         source: 'payday',
         emoji: '💰',
       });
