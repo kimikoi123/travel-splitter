@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import type { Transaction, Installment, DebtEntry, Account, ExchangeRates } from '../types';
+import type { Transaction, Installment, DebtEntry, Account, ExchangeRates, PaydayConfig } from '../types';
 import { formatCurrency } from '../utils/currencies';
 import { computeTimeline, type ForecastEvent } from '../utils/forecast';
 
@@ -10,9 +10,7 @@ interface CashflowForecastProps {
   debts: DebtEntry[];
   accounts: Account[];
   defaultCurrency: string;
-  paydayDay?: number;
-  paydayAmount?: number;
-  paydayCurrency?: string;
+  paydayConfig?: PaydayConfig;
   exchangeRates: ExchangeRates | null;
   onBack: () => void;
 }
@@ -123,9 +121,7 @@ export default function CashflowForecast({
   debts,
   accounts,
   defaultCurrency,
-  paydayDay,
-  paydayAmount,
-  paydayCurrency,
+  paydayConfig,
   exchangeRates,
   onBack,
 }: CashflowForecastProps) {
@@ -133,16 +129,14 @@ export default function CashflowForecast({
     () =>
       computeTimeline({
         transactions,
-        paydayDay,
-        paydayAmount,
-        paydayCurrency,
+        paydayConfig,
         installments,
         debts,
         accounts,
         defaultCurrency,
         exchangeRates,
       }),
-    [transactions, paydayDay, paydayAmount, paydayCurrency, installments, debts, accounts, defaultCurrency, exchangeRates],
+    [transactions, paydayConfig, installments, debts, accounts, defaultCurrency, exchangeRates],
   );
 
   const grouped = useMemo(() => {
