@@ -38,6 +38,9 @@ import DebtList from './components/DebtList';
 import DebtForm from './components/DebtForm';
 import InstallmentList from './components/InstallmentList';
 import InstallmentForm from './components/InstallmentForm';
+import PayrollList from './components/PayrollList';
+import EmployeeForm from './components/EmployeeForm';
+import EmployeeDetail from './components/EmployeeDetail';
 import CashflowForecast from './components/CashflowForecast';
 import PlannedPayments from './components/PlannedPayments';
 import SettingsScreen from './components/Settings';
@@ -45,8 +48,9 @@ import PHTaxCalculator from './components/PHTaxCalculator';
 import { useGoals } from './hooks/useGoals';
 import { useDebts } from './hooks/useDebts';
 import { useInstallments } from './hooks/useInstallments';
+import { usePayroll } from './hooks/usePayroll';
 import { start as startSyncEngine, stop as stopSyncEngine } from './sync/syncEngine';
-import type { Trip, Account, Budget, Goal, DebtEntry, Installment, ThemePreference, Transaction } from './types';
+import type { Trip, Account, Budget, Goal, DebtEntry, Installment, Employee, ThemePreference, Transaction } from './types';
 
 function App() {
   const {
@@ -83,6 +87,11 @@ function App() {
   const { goals, addGoal, editGoal, removeGoal } = useGoals();
   const { debts, addDebt, editDebt, removeDebt } = useDebts();
   const { installments, addInstallment, editInstallment, removeInstallment } = useInstallments();
+  const {
+    employees, addEmployee, editEmployee, removeEmployee,
+    addAdvance, removeAdvance, settlePayday,
+    totalPendingAdvances, advancesForEmployee,
+  } = usePayroll();
 
   // Start the cloud sync engine once on mount. The engine is idempotent
   // (internal `started` flag), and we still return a cleanup so strict-mode
@@ -117,6 +126,10 @@ function App() {
   const [showCashflowForecast, setShowCashflowForecast] = useState(false);
   const [showPlannedPayments, setShowPlannedPayments] = useState(false);
   const [editingInstallment, setEditingInstallment] = useState<Installment | null>(null);
+  const [showPayrollList, setShowPayrollList] = useState(false);
+  const [showEmployeeForm, setShowEmployeeForm] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showTaxCalculator, setShowTaxCalculator] = useState(false);
   const [pendingSharedTrip, setPendingSharedTrip] = useState<Trip | null>(null);
@@ -321,6 +334,29 @@ function App() {
     showToast('Month marked as paid', () => {});
   }, [installments, editInstallment, showToast]);
 
+  const formatAmount = useCallback((amount: number, currency: string) => {
+    return new Intl.NumberFormat('en-PH', { style: 'currency', currency }).format(amount);
+  }, []);
+
+  // Employee handlers
+  const handleSaveEmployee = useCallback(async (data: Omit<Employee, 'id' | 'createdAt'>) => {
+    if (editingEmployee) {
+      await editEmployee(editingEmployee.id, data);
+      showToast('Employee updated', () => {});
+    } else {
+      await addEmployee(data);
+      showToast('Employee added', () => {});
+    }
+    setShowEmployeeForm(false);
+    setEditingEmployee(null);
+  }, [editingEmployee, editEmployee, addEmployee, showToast]);
+
+  const handleDeleteEmployee = useCallback(async (id: string) => {
+    await removeEmployee(id);
+    setSelectedEmployee(null);
+    showToast('Employee deleted', () => {});
+  }, [removeEmployee, showToast]);
+
   const handleOnboardingComplete = useCallback(async (prefs: { displayName: string; defaultCurrency: string; theme: ThemePreference }) => {
     setTheme(prefs.theme);
     await updatePreferences({
@@ -505,6 +541,27 @@ function App() {
               onMarkPaid={handleMarkInstallmentPaid}
               onBack={() => setShowInstallmentList(false)}
             />
+          ) : showPayrollList && !selectedEmployee ? (
+            <PayrollList
+              employees={employees}
+              totalPendingAdvances={totalPendingAdvances}
+              onAdd={() => { setEditingEmployee(null); setShowEmployeeForm(true); }}
+              onSelect={(emp) => setSelectedEmployee(emp)}
+              onBack={() => setShowPayrollList(false)}
+              formatAmount={formatAmount}
+            />
+          ) : selectedEmployee ? (
+            <EmployeeDetail
+              employee={selectedEmployee}
+              advances={advancesForEmployee(selectedEmployee.id)}
+              onBack={() => setSelectedEmployee(null)}
+              onEdit={() => { setEditingEmployee(selectedEmployee); setShowEmployeeForm(true); }}
+              onDelete={() => handleDeleteEmployee(selectedEmployee.id)}
+              onAddAdvance={addAdvance}
+              onRemoveAdvance={removeAdvance}
+              onSettle={settlePayday}
+              formatAmount={formatAmount}
+            />
           ) : (
             <PlanTab
               trips={state.trips}
@@ -516,6 +573,7 @@ function App() {
               goals={goals}
               debts={debts}
               installments={installments}
+              employees={employees}
               onSelectTrip={setActiveTrip}
               onCreateTrip={createTrip}
               onDeleteTrip={deleteTrip}
@@ -534,6 +592,7 @@ function App() {
               onOpenGoals={() => setShowGoalList(true)}
               onOpenDebts={() => setShowDebtList(true)}
               onOpenInstallments={() => setShowInstallmentList(true)}
+              onOpenPayroll={() => setShowPayrollList(true)}
               showToast={showToast}
             />
           )
@@ -557,7 +616,7 @@ function App() {
           onTabChange={(tab) => {
             setActiveTab(tab);
             if (tab !== 'wallet') setSelectedAccountId(null);
-            if (tab !== 'plan') { setActiveTrip(null); setShowCashflowForecast(false); setShowPlannedPayments(false); setShowBudgetList(false); setShowGoalList(false); setShowDebtList(false); setShowInstallmentList(false); }
+            if (tab !== 'plan') { setActiveTrip(null); setShowCashflowForecast(false); setShowPlannedPayments(false); setShowBudgetList(false); setShowGoalList(false); setShowDebtList(false); setShowInstallmentList(false); setShowPayrollList(false); setSelectedEmployee(null); }
           }}
           onFabClick={() => setShowActionMenu(!showActionMenu)}
           fabOpen={showActionMenu}
@@ -637,6 +696,15 @@ function App() {
           onSave={handleSaveInstallment}
           onCancel={() => { setShowInstallmentForm(false); setEditingInstallment(null); }}
           editingInstallment={editingInstallment ?? undefined}
+        />
+      )}
+
+      {showEmployeeForm && (
+        <EmployeeForm
+          onSave={handleSaveEmployee}
+          onCancel={() => { setShowEmployeeForm(false); setEditingEmployee(null); }}
+          editingEmployee={editingEmployee ?? undefined}
+          defaultCurrency={preferences.defaultCurrency}
         />
       )}
 
