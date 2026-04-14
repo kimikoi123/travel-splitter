@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { Trip, DeletedTrip, ExchangeRates, Transaction, UserPreferences, Account, Budget, Goal, DebtEntry, Installment, SyncEntityType } from '../types';
+import type { Trip, DeletedTrip, ExchangeRates, Transaction, UserPreferences, Account, Budget, Goal, DebtEntry, Installment, Employee, Advance, SyncEntityType } from '../types';
 
 interface MetaRecord {
   key: string;
@@ -58,6 +58,8 @@ class SplitTripDB extends Dexie {
   goals!: Table<Goal, string>;
   debts!: Table<DebtEntry, string>;
   installments!: Table<Installment, string>;
+  employees!: Table<Employee, string>;
+  advances!: Table<Advance, string>;
   pendingPushes!: Table<PendingPushRecord, string>;
 
   constructor() {
@@ -219,6 +221,24 @@ class SplitTripDB extends Dexie {
         if (row.updatedAt === undefined) row.updatedAt = now;
       });
     });
+    // v12: add payroll tables for tracking household help salary and advances.
+    this.version(12).stores({
+      trips: 'id, updatedAt, deletedAt',
+      meta: 'key',
+      rateCache: 'key',
+      deletedTrips: 'id',
+      receiptPhotos: 'expenseId, updatedAt, deletedAt',
+      transactions: 'id, date, type, updatedAt, deletedAt',
+      userPreferences: 'id, updatedAt',
+      accounts: 'id, type, sortOrder, updatedAt, deletedAt',
+      budgets: 'id, type, updatedAt, deletedAt',
+      goals: 'id, updatedAt, deletedAt',
+      debts: 'id, direction, updatedAt, deletedAt',
+      installments: 'id, updatedAt, deletedAt',
+      pendingPushes: 'id, enqueuedAt',
+      employees: 'id, updatedAt, deletedAt',
+      advances: 'id, employeeId, settled, updatedAt, deletedAt',
+    });
   }
 }
 
@@ -226,4 +246,4 @@ class SplitTripDB extends Dexie {
 const db = new SplitTripDB();
 
 export { db };
-export type { MetaRecord, RateCacheRecord, ReceiptPhotoRecord, Transaction, UserPreferences };
+export type { MetaRecord, RateCacheRecord, ReceiptPhotoRecord, Transaction, UserPreferences, Employee, Advance };
