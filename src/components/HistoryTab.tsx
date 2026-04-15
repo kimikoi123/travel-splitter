@@ -221,9 +221,9 @@ export default function HistoryTab({ transactions, accounts, defaultCurrency, di
                       </div>
 
                       {/* Amount + actions */}
-                      <div className="flex items-center gap-1.5 shrink-0">
+                      <div className="flex items-center gap-0.5 sm:gap-1.5 shrink-0">
                         <span
-                          className={`text-sm font-semibold ${
+                          className={`text-xs sm:text-sm font-semibold ${
                             isExpense ? 'text-danger' : 'text-success'
                           }`}
                         >
@@ -235,7 +235,7 @@ export default function HistoryTab({ transactions, accounts, defaultCurrency, di
                             type="button"
                             onClick={() => onEdit(t)}
                             aria-label="Edit transaction"
-                            className="min-w-[36px] min-h-[36px] flex items-center justify-center text-text-secondary hover:text-primary active:opacity-60 transition-colors rounded-lg"
+                            className="min-w-[32px] min-h-[32px] sm:min-w-[36px] sm:min-h-[36px] flex items-center justify-center text-text-secondary hover:text-primary active:opacity-60 transition-colors rounded-lg"
                           >
                             <Pencil size={15} />
                           </button>
@@ -245,7 +245,7 @@ export default function HistoryTab({ transactions, accounts, defaultCurrency, di
                             type="button"
                             onClick={() => handleDelete(t)}
                             aria-label="Delete transaction"
-                            className="min-w-[36px] min-h-[36px] flex items-center justify-center text-text-secondary hover:text-danger active:opacity-60 transition-colors rounded-lg"
+                            className="min-w-[32px] min-h-[32px] sm:min-w-[36px] sm:min-h-[36px] flex items-center justify-center text-text-secondary hover:text-danger active:opacity-60 transition-colors rounded-lg"
                           >
                             <Trash2 size={15} />
                           </button>

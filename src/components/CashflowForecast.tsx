@@ -106,7 +106,7 @@ function EventRow({ event, isLast }: { event: ForecastEvent; isLast: boolean }) 
         </span>
       </div>
       <p
-        className={`text-sm font-semibold shrink-0 ${isInflow ? 'text-success' : 'text-danger'}`}
+        className={`text-xs sm:text-sm font-semibold shrink-0 ${isInflow ? 'text-success' : 'text-danger'}`}
         style={{ fontVariantNumeric: 'tabular-nums' }}
       >
         {isInflow ? '+' : '-'}{formatCurrency(Math.abs(event.amount), event.currency)}
@@ -178,11 +178,11 @@ export default function CashflowForecast({
         <p className="text-[10px] font-semibold text-text-secondary tracking-wider mb-3">
           PROJECTED BALANCE
         </p>
-        <div className="flex items-end justify-between gap-4">
+        <div className="flex items-end justify-between gap-2 sm:gap-4">
           <div className="min-w-0">
             <p className="text-xs text-text-secondary mb-0.5">Today</p>
             <p
-              className={`text-lg font-bold ${timeline.startingBalance >= 0 ? 'text-text-primary' : 'text-danger'}`}
+              className={`text-base sm:text-lg font-bold truncate ${timeline.startingBalance >= 0 ? 'text-text-primary' : 'text-danger'}`}
               style={{ fontVariantNumeric: 'tabular-nums' }}
             >
               {timeline.startingBalance < 0 && '-'}{formatCurrency(Math.abs(timeline.startingBalance), defaultCurrency)}
@@ -192,7 +192,7 @@ export default function CashflowForecast({
           <div className="min-w-0 text-right">
             <p className="text-xs text-text-secondary mb-0.5">In 30 days</p>
             <p
-              className={`text-lg font-bold ${projectedPositive ? 'text-success' : 'text-danger'}`}
+              className={`text-base sm:text-lg font-bold truncate ${projectedPositive ? 'text-success' : 'text-danger'}`}
               style={{ fontVariantNumeric: 'tabular-nums' }}
             >
               {!projectedPositive && '-'}{formatCurrency(Math.abs(timeline.projectedBalance), defaultCurrency)}
@@ -218,28 +218,28 @@ export default function CashflowForecast({
 
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6">
-        <div className="bg-surface rounded-2xl border border-border p-3 text-center">
+        <div className="bg-surface rounded-2xl border border-border p-2.5 sm:p-3 text-center overflow-hidden">
           <p className="text-[10px] font-semibold text-text-secondary tracking-wider mb-1">
             EXPECTED IN
           </p>
-          <p className="text-base font-bold text-success" style={{ fontVariantNumeric: 'tabular-nums' }}>
+          <p className="text-sm sm:text-base font-bold text-success truncate" style={{ fontVariantNumeric: 'tabular-nums' }}>
             {formatCurrency(timeline.totalIn, defaultCurrency)}
           </p>
         </div>
-        <div className="bg-surface rounded-2xl border border-border p-3 text-center">
+        <div className="bg-surface rounded-2xl border border-border p-2.5 sm:p-3 text-center overflow-hidden">
           <p className="text-[10px] font-semibold text-text-secondary tracking-wider mb-1">
             EXPECTED OUT
           </p>
-          <p className="text-base font-bold text-danger" style={{ fontVariantNumeric: 'tabular-nums' }}>
+          <p className="text-sm sm:text-base font-bold text-danger truncate" style={{ fontVariantNumeric: 'tabular-nums' }}>
             {formatCurrency(timeline.totalOut, defaultCurrency)}
           </p>
         </div>
-        <div className="bg-surface rounded-2xl border border-border p-3 text-center">
+        <div className="bg-surface rounded-2xl border border-border p-2.5 sm:p-3 text-center overflow-hidden">
           <p className="text-[10px] font-semibold text-text-secondary tracking-wider mb-1">
             NET
           </p>
           <p
-            className={`text-base font-bold ${netPositive ? 'text-success' : 'text-danger'}`}
+            className={`text-sm sm:text-base font-bold truncate ${netPositive ? 'text-success' : 'text-danger'}`}
             style={{ fontVariantNumeric: 'tabular-nums' }}
           >
             {netPositive ? '+' : '-'}{formatCurrency(Math.abs(timeline.net), defaultCurrency)}

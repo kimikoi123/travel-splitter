@@ -72,9 +72,9 @@ function DebitCard({ account, onClick }: { account: Account; onClick: () => void
           {typeLabel} &bull; {account.currency}
         </p>
       </div>
-      <div>
+      <div className="min-w-0">
         <p className="text-[10px] text-white/60 uppercase">Balance</p>
-        <p className="text-lg font-bold text-white">
+        <p className="text-base sm:text-lg font-bold text-white truncate">
           {formatCurrency(account.balance, account.currency)}
         </p>
         {account.interestRate != null && (
@@ -124,9 +124,9 @@ function CreditCard({ account, onClick }: { account: Account; onClick: () => voi
           </span>
         </div>
       </div>
-      <div>
+      <div className="min-w-0">
         <p className="text-[10px] text-white/60 uppercase">Used Credit</p>
-        <p className="text-lg font-bold text-white">
+        <p className="text-base sm:text-lg font-bold text-white truncate">
           {formatCurrency(account.balance, account.currency)}
         </p>
       </div>
@@ -158,12 +158,12 @@ function InvestmentCard({ account, onClick }: { account: Account; onClick: () =>
           {' '}&bull; {account.currency}
         </p>
       </div>
-      <div>
+      <div className="min-w-0">
         <p className="text-[10px] text-white/60 uppercase">Balance</p>
-        <p className="text-lg font-bold text-white">
+        <p className="text-base sm:text-lg font-bold text-white truncate">
           {formatCurrency(totalValue, account.currency)}
         </p>
-        <p className="text-[10px] text-white/60">
+        <p className="text-[10px] text-white/60 truncate">
           {units} units &bull; {formatCurrency(pricePerUnit, account.currency)}
         </p>
       </div>
@@ -313,11 +313,11 @@ export default function WalletTab({
       </div>
 
       {/* Net Worth Card */}
-      <div className="bg-surface rounded-2xl border border-border p-5 mb-4">
+      <div className="bg-surface rounded-2xl border border-border p-4 sm:p-5 mb-4">
         <p className="text-[10px] uppercase tracking-wider text-text-secondary font-semibold">
           {filter === 'all' ? 'Net Worth' : `${FILTER_OPTIONS.find((o) => o.key === filter)?.label ?? ''} Total`}
         </p>
-        <p className="text-3xl font-bold text-text-primary mt-1">
+        <p className="text-2xl sm:text-3xl font-bold text-text-primary mt-1 truncate">
           {formatCurrency(filteredTotal, defaultCurrency)}
         </p>
         <p className="text-xs text-text-secondary mt-1">{filterDescription[filter]}</p>

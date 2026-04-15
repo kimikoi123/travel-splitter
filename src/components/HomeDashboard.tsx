@@ -302,7 +302,7 @@ export default function HomeDashboard({
           <p className="text-base font-semibold text-text-primary" data-heading>
             {periodLabel}
           </p>
-          <p className="text-2xl font-bold text-text-primary mt-1 mb-3" data-heading>
+          <p className="text-xl sm:text-2xl font-bold text-text-primary mt-1 mb-3 truncate" data-heading>
             {formatCurrency(periodTotal, defaultCurrency)}
           </p>
           <div className="flex gap-1 mt-auto">
@@ -345,8 +345,8 @@ export default function HomeDashboard({
                 )}
               </div>
             </div>
-            <div className="text-right">
-              <p className="font-semibold text-primary">
+            <div className="text-right min-w-0 shrink-0 max-w-[45%]">
+              <p className="text-sm sm:text-base font-semibold text-primary truncate">
                 {formatCurrency(paydayInfo.amount, paydayInfo.currency)}
               </p>
               <p className="text-xs text-text-secondary">
@@ -358,21 +358,21 @@ export default function HomeDashboard({
       )}
 
       {/* 3. Monthly Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-        <div className="bg-surface rounded-2xl border border-border p-4 text-center">
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="bg-surface rounded-2xl border border-border p-3 sm:p-4 text-center overflow-hidden">
           <p className="text-[10px] font-semibold text-text-secondary tracking-wider mb-1">
             THIS MONTH
           </p>
-          <p className="text-lg font-bold text-danger">
+          <p className="text-base sm:text-lg font-bold text-danger truncate">
             {formatCurrency(monthExpenses, defaultCurrency)}
           </p>
           <p className="text-xs text-text-secondary">spent</p>
         </div>
-        <div className="bg-surface rounded-2xl border border-border p-4 text-center">
+        <div className="bg-surface rounded-2xl border border-border p-3 sm:p-4 text-center overflow-hidden">
           <p className="text-[10px] font-semibold text-text-secondary tracking-wider mb-1">
             THIS MONTH
           </p>
-          <p className="text-lg font-bold text-success">
+          <p className="text-base sm:text-lg font-bold text-success truncate">
             {formatCurrency(monthIncome, defaultCurrency)}
           </p>
           <p className="text-xs text-text-secondary">earned</p>
@@ -423,7 +423,7 @@ export default function HomeDashboard({
                             {formatShortDate(r.nextDate)}
                           </p>
                         </div>
-                        <p className="text-sm font-semibold text-success shrink-0">
+                        <p className="text-xs sm:text-sm font-semibold text-success shrink-0">
                           +{formatCurrency(r.txn.amount, r.txn.currency)}
                         </p>
                       </div>
@@ -469,7 +469,7 @@ export default function HomeDashboard({
                             {formatShortDate(r.nextDate)}
                           </p>
                         </div>
-                        <p className="text-sm font-semibold text-danger shrink-0">
+                        <p className="text-xs sm:text-sm font-semibold text-danger shrink-0">
                           -{formatCurrency(r.txn.amount, r.txn.currency)}
                         </p>
                       </div>
@@ -523,7 +523,7 @@ export default function HomeDashboard({
 
                   {/* Amount */}
                   <p
-                    className={`text-sm font-semibold shrink-0 ${
+                    className={`text-xs sm:text-sm font-semibold shrink-0 ${
                       isExpense ? 'text-danger' : 'text-success'
                     }`}
                   >

@@ -33,7 +33,7 @@ export default function BottomTabBar({ activeTab, onTabChange, onFabClick, fabOp
                 aria-label={label}
                 aria-selected={isActive}
                 role="tab"
-                className={`flex flex-col items-center gap-0.5 py-2.5 px-3 min-w-[56px] min-h-[44px] transition-colors ${
+                className={`flex flex-col items-center gap-0.5 py-2.5 px-2 sm:px-3 min-w-[48px] sm:min-w-[56px] min-h-[44px] transition-colors ${
                   isActive ? 'text-primary' : 'text-text-secondary'
                 }`}
               >
