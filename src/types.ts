@@ -154,6 +154,13 @@ export interface Budget {
   createdAt: string;
   updatedAt?: number;
   deletedAt?: number;
+
+  // Commitment fields — present iff isCommitment === true
+  isCommitment?: boolean;
+  dueDay?: number;             // 1-31; clamped to last day of month when rendered
+  varies?: boolean;            // true => pending-confirm flow; false => auto-confirm
+  sourceAccountId?: string;    // optional account the bill deducts from
+  lastConfirmedMonth?: string; // "YYYY-MM" — most recent month auto-confirmed or user-confirmed
 }
 
 export type ThemePreference = 'light' | 'dark' | 'system';
