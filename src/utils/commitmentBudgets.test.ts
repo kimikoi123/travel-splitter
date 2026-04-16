@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { clampDueDay, resolveDueDate, monthKey } from './commitmentBudgets';
+import { clampDueDay, resolveDueDate, monthKey, deriveCommitmentState } from './commitmentBudgets';
+import type { Budget } from '../types';
 
 describe('clampDueDay', () => {
   it('returns dueDay unchanged when within the month', () => {
@@ -38,5 +39,71 @@ describe('monthKey', () => {
   it('formats ISO date strings as YYYY-MM', () => {
     expect(monthKey('2026-04-16')).toBe('2026-04');
     expect(monthKey('2026-12-01')).toBe('2026-12');
+  });
+});
+
+function makeCommitment(overrides: Partial<Budget> = {}): Budget {
+  return {
+    id: 'b1',
+    name: 'Meralco',
+    type: 'custom',
+    monthlyLimit: 2800,
+    currency: 'PHP',
+    icon: 'M',
+    color: '#f7941d',
+    preset: 'meralco',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    isCommitment: true,
+    dueDay: 15,
+    varies: true,
+    ...overrides,
+  };
+}
+
+describe('deriveCommitmentState', () => {
+  it('returns null fields for non-commitment budgets', () => {
+    const flexible = makeCommitment({ isCommitment: false });
+    const today = new Date(2026, 3, 16);
+    const state = deriveCommitmentState(flexible, today);
+    expect(state.isPendingThisMonth).toBe(false);
+    expect(state.nextDueDate).toBeUndefined();
+  });
+
+  it('is pending when varies=true, due-day passed, and not confirmed this month', () => {
+    const b = makeCommitment({ dueDay: 15, varies: true });
+    const today = new Date(2026, 3, 16);  // Apr 16
+    const state = deriveCommitmentState(b, today);
+    expect(state.isPendingThisMonth).toBe(true);
+    expect(state.nextDueDate).toBe('2026-04-15');
+  });
+
+  it('is not pending before due-day', () => {
+    const b = makeCommitment({ dueDay: 15, varies: true });
+    const today = new Date(2026, 3, 10);  // Apr 10
+    const state = deriveCommitmentState(b, today);
+    expect(state.isPendingThisMonth).toBe(false);
+    expect(state.nextDueDate).toBe('2026-04-15');
+  });
+
+  it('is not pending when varies=false (auto-confirm path)', () => {
+    const b = makeCommitment({ dueDay: 15, varies: false });
+    const today = new Date(2026, 3, 20);
+    const state = deriveCommitmentState(b, today);
+    expect(state.isPendingThisMonth).toBe(false);
+  });
+
+  it('is not pending when already confirmed this month', () => {
+    const b = makeCommitment({ dueDay: 15, varies: true, lastConfirmedMonth: '2026-04' });
+    const today = new Date(2026, 3, 20);
+    const state = deriveCommitmentState(b, today);
+    expect(state.isPendingThisMonth).toBe(false);
+    expect(state.nextDueDate).toBe('2026-05-15');  // next month's due-day
+  });
+
+  it('points nextDueDate to next month after confirmation, clamping short months', () => {
+    const b = makeCommitment({ dueDay: 31, varies: false, lastConfirmedMonth: '2026-01' });
+    const today = new Date(2026, 0, 31);
+    const state = deriveCommitmentState(b, today);
+    expect(state.nextDueDate).toBe('2026-02-28');
   });
 });
