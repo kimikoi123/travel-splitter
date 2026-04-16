@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { clampDueDay, resolveDueDate, monthKey, deriveCommitmentState } from './commitmentBudgets';
+import { clampDueDay, resolveDueDate, monthKey, deriveCommitmentState, planAutoConfirm } from './commitmentBudgets';
 import type { Budget } from '../types';
 
 describe('clampDueDay', () => {
@@ -105,5 +105,74 @@ describe('deriveCommitmentState', () => {
     const today = new Date(2026, 0, 31);
     const state = deriveCommitmentState(b, today);
     expect(state.nextDueDate).toBe('2026-02-28');
+  });
+});
+
+describe('planAutoConfirm', () => {
+  it('returns no actions for non-commitment budgets', () => {
+    const flexible = makeCommitment({ isCommitment: false });
+    const plan = planAutoConfirm([flexible], new Date(2026, 3, 20));
+    expect(plan).toEqual([]);
+  });
+
+  it('returns no actions for varies=true (user must confirm)', () => {
+    const b = makeCommitment({ varies: true });
+    const plan = planAutoConfirm([b], new Date(2026, 3, 20));
+    expect(plan).toEqual([]);
+  });
+
+  it('returns no actions before due-day', () => {
+    const b = makeCommitment({ varies: false, dueDay: 20 });
+    const plan = planAutoConfirm([b], new Date(2026, 3, 10));
+    expect(plan).toEqual([]);
+  });
+
+  it('plans a single auto-confirm when due-day passed and not confirmed', () => {
+    const b = makeCommitment({ id: 'b1', name: 'Netflix', monthlyLimit: 549, varies: false, dueDay: 15 });
+    const plan = planAutoConfirm([b], new Date(2026, 3, 20));
+    expect(plan).toHaveLength(1);
+    expect(plan[0]).toMatchObject({
+      budgetId: 'b1',
+      newLastConfirmedMonth: '2026-04',
+      transaction: {
+        type: 'expense',
+        amount: 549,
+        currency: 'PHP',
+        date: '2026-04-15',
+        category: 'bills',
+        description: 'Netflix',
+        budgetId: 'b1',
+      },
+    });
+  });
+
+  it('backfills multiple months when lastConfirmedMonth is old', () => {
+    const b = makeCommitment({
+      id: 'b1',
+      name: 'Netflix',
+      monthlyLimit: 549,
+      varies: false,
+      dueDay: 15,
+      lastConfirmedMonth: '2026-01',
+    });
+    const plan = planAutoConfirm([b], new Date(2026, 3, 20));  // April 20
+    expect(plan.map((a) => a.transaction.date)).toEqual([
+      '2026-02-15',
+      '2026-03-15',
+      '2026-04-15',
+    ]);
+    expect(plan[plan.length - 1]!.newLastConfirmedMonth).toBe('2026-04');
+  });
+
+  it('does not re-plan months already confirmed', () => {
+    const b = makeCommitment({ varies: false, dueDay: 15, lastConfirmedMonth: '2026-04' });
+    const plan = planAutoConfirm([b], new Date(2026, 3, 20));
+    expect(plan).toEqual([]);
+  });
+
+  it('includes sourceAccountId when set', () => {
+    const b = makeCommitment({ varies: false, dueDay: 15, sourceAccountId: 'acct-1' });
+    const plan = planAutoConfirm([b], new Date(2026, 3, 20));
+    expect(plan[0]!.transaction.accountId).toBe('acct-1');
   });
 });
