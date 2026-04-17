@@ -13,6 +13,7 @@ interface BudgetListProps {
   onCreateCustom: () => void;
   onEdit: (budget: Budget) => void;
   onDelete: (id: string) => void;
+  onConfirmBill: (budget: BudgetWithSpending) => void;  // NEW
   onBack: () => void;
 }
 
@@ -20,6 +21,96 @@ function getBarColor(percentage: number): string {
   if (percentage > 100) return 'bg-danger';
   if (percentage >= 80) return 'bg-amber-500';
   return 'bg-primary';
+}
+
+function formatISOShort(iso: string | undefined): string {
+  if (!iso) return '—';
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y!, m! - 1, d!).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function CommitmentCard({
+  budget,
+  onEdit,
+  onDelete,
+  onConfirm,
+}: {
+  budget: BudgetWithSpending;
+  onEdit: () => void;
+  onDelete: () => void;
+  onConfirm: () => void;
+}) {
+  const confirmedThisMonth =
+    budget.lastConfirmedMonth === new Date().toISOString().slice(0, 7);
+  const isPending = budget.isPendingThisMonth === true;
+
+  const secondary: { text: string; pill?: { label: string; tone: 'amber' | 'success' } } = (() => {
+    if (isPending) {
+      return { text: 'Due today · tap to confirm', pill: { label: 'PENDING', tone: 'amber' } };
+    }
+    if (confirmedThisMonth) {
+      return {
+        text: `Paid ${formatCurrency(budget.spent, budget.currency)} · next ${formatISOShort(budget.nextDueDate)}`,
+        pill: { label: 'PAID', tone: 'success' },
+      };
+    }
+    if (budget.varies === false) {
+      return { text: `Next: ${formatISOShort(budget.nextDueDate)} · auto-posts ${formatCurrency(budget.monthlyLimit, budget.currency)}` };
+    }
+    return { text: `Next: ${formatISOShort(budget.nextDueDate)} · est. ${formatCurrency(budget.monthlyLimit, budget.currency)}` };
+  })();
+
+  const pillClass =
+    secondary.pill?.tone === 'amber'
+      ? 'bg-amber-500/15 text-amber-600'
+      : 'bg-success/15 text-success';
+
+  return (
+    <button
+      type="button"
+      onClick={isPending ? onConfirm : undefined}
+      disabled={!isPending}
+      className={`bg-surface rounded-2xl border border-white/[0.06] p-4 flex items-start gap-3 text-left transition-all ${
+        isPending ? 'hover:bg-surface-hover active:scale-[0.98] cursor-pointer' : 'cursor-default'
+      }`}
+    >
+      <LogoBadge
+        logo={budget.preset ? getBudgetPreset(budget.preset)?.logo : undefined}
+        name={budget.name}
+        color={budget.color}
+        size="md"
+      />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-semibold text-text-primary truncate">{budget.name}</p>
+          {secondary.pill && (
+            <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-semibold ${pillClass}`}>
+              {secondary.pill.label}
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-text-secondary mt-0.5">{secondary.text}</p>
+      </div>
+      <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onEdit(); }}
+          className="p-1.5 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-surface-light transition-colors"
+          aria-label={`Edit ${budget.name}`}
+        >
+          <Pencil className="w-4 h-4" />
+        </button>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          className="p-1.5 rounded-lg text-text-tertiary hover:text-danger hover:bg-surface-light transition-colors"
+          aria-label={`Delete ${budget.name}`}
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+    </button>
+  );
 }
 
 function BudgetCard({
@@ -103,10 +194,12 @@ export default function BudgetList({
   onCreateCustom,
   onEdit,
   onDelete,
+  onConfirmBill,
   onBack,
 }: BudgetListProps) {
   const [pendingDelete, setPendingDelete] = useState<BudgetWithSpending | null>(null);
-  const customBudgets = budgets.filter((b) => b.type === 'custom');
+  const commitmentBudgets = budgets.filter((b) => b.type === 'custom' && b.isCommitment === true);
+  const flexibleCustomBudgets = budgets.filter((b) => b.type === 'custom' && b.isCommitment !== true);
   const categoryBudgets = budgets.filter((b) => b.type === 'category');
   const hasNoBudgets = budgets.length === 0;
 
@@ -157,8 +250,31 @@ export default function BudgetList({
         <ChevronRight className="w-5 h-5 text-text-tertiary shrink-0" />
       </button>
 
-      {/* Custom Budgets Section */}
-      {customBudgets.length > 0 && (
+      {/* Commitments Section */}
+      {commitmentBudgets.length > 0 && (
+        <section className="mb-6">
+          <h2 className="text-sm font-semibold text-text-secondary mb-1">
+            Commitments
+          </h2>
+          <p className="text-xs text-text-tertiary mb-3">
+            Fixed and variable recurring bills. Variable bills need confirmation each month.
+          </p>
+          <div className="flex flex-col gap-2">
+            {commitmentBudgets.map((budget) => (
+              <CommitmentCard
+                key={budget.id}
+                budget={budget}
+                onEdit={() => onEdit(budget)}
+                onDelete={() => setPendingDelete(budget)}
+                onConfirm={() => onConfirmBill(budget)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Flexible custom budgets Section */}
+      {flexibleCustomBudgets.length > 0 && (
         <section className="mb-6">
           <h2 className="text-sm font-semibold text-text-secondary mb-1">
             Your custom budgets
@@ -167,7 +283,7 @@ export default function BudgetList({
             Edit or delete the extra categories you created for finer tracking.
           </p>
           <div className="flex flex-col gap-2">
-            {customBudgets.map((budget) => (
+            {flexibleCustomBudgets.map((budget) => (
               <BudgetCard
                 key={budget.id}
                 budget={budget}

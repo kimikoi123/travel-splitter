@@ -9,6 +9,7 @@ import { useTransactions } from './hooks/useTransactions';
 import { useUserPreferences } from './hooks/useUserPreferences';
 import { useAccounts } from './hooks/useAccounts';
 import { useBudgets } from './hooks/useBudgets';
+import type { BudgetWithSpending } from './hooks/useBudgets';
 import Header from './components/Header';
 import BottomTabBar from './components/BottomTabBar';
 import type { TabId } from './components/BottomTabBar';
@@ -121,6 +122,9 @@ function App() {
   const [showTransferForm, setShowTransferForm] = useState(false);
   const [refreshingPrice, setRefreshingPrice] = useState(false);
   const [showBudgetList, setShowBudgetList] = useState(false);
+  // pendingConfirmBill is consumed in Task 10 (ConfirmBillDialog)
+  const [pendingConfirmBill, setPendingConfirmBill] = useState<BudgetWithSpending | null>(null);
+  void pendingConfirmBill; // Task 10 will render <ConfirmBillDialog> using this
   const [showCreateBudget, setShowCreateBudget] = useState<{ mode: 'category' | 'custom' } | null>(null);
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
   const [showGoalList, setShowGoalList] = useState(false);
@@ -519,6 +523,7 @@ function App() {
               onCreateCustom={() => { setEditingBudget(null); setShowCreateBudget({ mode: 'custom' }); }}
               onEdit={(b) => { setEditingBudget(b); setShowCreateBudget({ mode: b.type }); }}
               onDelete={handleDeleteBudget}
+              onConfirmBill={(budget) => setPendingConfirmBill(budget)}
               onBack={() => setShowBudgetList(false)}
             />
           ) : showGoalList ? (
