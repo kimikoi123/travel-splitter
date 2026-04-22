@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import type { Transaction, Installment, DebtEntry, Account, Budget, ExchangeRates, PaydayConfig } from '../types';
 import { formatCurrency } from '../utils/currencies';
-import { computeTimeline, type ForecastEvent } from '../utils/forecast';
+import { computeTimeline, type ForecastEvent, type DailyBalance } from '../utils/forecast';
 
 interface CashflowForecastProps {
   transactions: Transaction[];
@@ -82,6 +82,108 @@ function UrgencyBadge({ daysUntil, isReminder }: { daysUntil: number; isReminder
     );
   }
   return null;
+}
+
+function BalanceSparkline({
+  daily,
+  worstDate,
+}: {
+  daily: DailyBalance[];
+  worstDate: Date | null;
+}) {
+  if (daily.length < 2) return null;
+
+  const W = 320;
+  const H = 64;
+  const padX = 4;
+  const padY = 8;
+
+  const values = daily.map((d) => d.balance);
+  const dataMin = Math.min(...values);
+  const dataMax = Math.max(...values);
+  const minY = Math.min(0, dataMin);
+  const maxY = Math.max(0, dataMax);
+  const range = maxY - minY || 1;
+
+  const toX = (i: number) => padX + (i / (daily.length - 1)) * (W - 2 * padX);
+  const toY = (v: number) => H - padY - ((v - minY) / range) * (H - 2 * padY);
+
+  const linePath = daily
+    .map((d, i) => `${i === 0 ? 'M' : 'L'} ${toX(i).toFixed(2)} ${toY(d.balance).toFixed(2)}`)
+    .join(' ');
+
+  const areaPath =
+    `M ${toX(0).toFixed(2)} ${toY(0).toFixed(2)} ` +
+    daily.map((d, i) => `L ${toX(i).toFixed(2)} ${toY(d.balance).toFixed(2)}`).join(' ') +
+    ` L ${toX(daily.length - 1).toFixed(2)} ${toY(0).toFixed(2)} Z`;
+
+  const zeroY = toY(0);
+  const anyNegative = dataMin < 0;
+
+  const startPt = { x: toX(0), y: toY(daily[0]!.balance) };
+  const endIdx = daily.length - 1;
+  const endPt = { x: toX(endIdx), y: toY(daily[endIdx]!.balance) };
+  const endPositive = daily[endIdx]!.balance >= 0;
+
+  let worstPt: { x: number; y: number; balance: number } | null = null;
+  if (worstDate) {
+    const idx = daily.findIndex(
+      (d) =>
+        d.date.getFullYear() === worstDate.getFullYear() &&
+        d.date.getMonth() === worstDate.getMonth() &&
+        d.date.getDate() === worstDate.getDate(),
+    );
+    if (idx >= 0) {
+      worstPt = { x: toX(idx), y: toY(daily[idx]!.balance), balance: daily[idx]!.balance };
+    }
+  }
+
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="none"
+      className="w-full h-16 mt-3"
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient id="sparkFill" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="currentColor" stopOpacity="0.25" />
+          <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      {anyNegative && (
+        <line
+          x1={padX}
+          x2={W - padX}
+          y1={zeroY}
+          y2={zeroY}
+          strokeDasharray="2 3"
+          className="stroke-text-tertiary"
+          strokeWidth="1"
+          opacity="0.5"
+        />
+      )}
+      <path d={areaPath} className={endPositive ? 'text-success' : 'text-danger'} fill="url(#sparkFill)" />
+      <path
+        d={linePath}
+        fill="none"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={endPositive ? 'stroke-success' : 'stroke-danger'}
+      />
+      <circle cx={startPt.x} cy={startPt.y} r="2.5" className="fill-text-secondary" />
+      <circle
+        cx={endPt.x}
+        cy={endPt.y}
+        r="3"
+        className={endPositive ? 'fill-success' : 'fill-danger'}
+      />
+      {worstPt && worstPt.balance < 0 && (
+        <circle cx={worstPt.x} cy={worstPt.y} r="3" className="fill-danger stroke-bg" strokeWidth="1.5" />
+      )}
+    </svg>
+  );
 }
 
 function EventRow({ event, isLast }: { event: ForecastEvent; isLast: boolean }) {
@@ -204,7 +306,11 @@ export default function CashflowForecast({
             </p>
           </div>
         </div>
-        <div className="flex items-center justify-end gap-1.5 mt-2">
+        <BalanceSparkline
+          daily={timeline.dailyBalances}
+          worstDate={timeline.minBalanceDate}
+        />
+        <div className="flex items-center justify-end gap-1.5 mt-1">
           <span
             className={`text-xs font-semibold ${netPositive ? 'text-success' : 'text-danger'}`}
             style={{ fontVariantNumeric: 'tabular-nums' }}

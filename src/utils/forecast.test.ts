@@ -332,3 +332,46 @@ describe('computeTimeline – running balance (minBalance)', () => {
     expect(result.minBalanceDate!.getDate()).toBe(15);
   });
 });
+
+describe('computeTimeline – dailyBalances', () => {
+  it('has windowDays+1 entries (today through today+window)', () => {
+    const today = new Date(2026, 3, 10);
+    const result = computeTimeline({
+      ...baseParams(today),
+      accounts: [makeAccount({ balance: 1000 })],
+      windowDays: 30,
+    });
+    expect(result.dailyBalances).toHaveLength(31);
+    expect(result.dailyBalances[0]!.date.getDate()).toBe(10);
+    expect(result.dailyBalances[30]!.date.getDate()).toBe(10); // May 10
+    expect(result.dailyBalances[30]!.date.getMonth()).toBe(4);
+  });
+
+  it('reflects balance flat before any event, then steps down on bill day', () => {
+    const today = new Date(2026, 3, 10);
+    const result = computeTimeline({
+      ...baseParams(today),
+      accounts: [makeAccount({ balance: 5000 })],
+      budgets: [makeBudget({ dueDay: 15, monthlyLimit: 2000 })],
+      windowDays: 30,
+    });
+    // Day 0-4: 5000 (Apr 10-14)
+    // Day 5+: 3000 (Apr 15 onwards, after bill)
+    expect(result.dailyBalances[0]!.balance).toBe(5000);
+    expect(result.dailyBalances[4]!.balance).toBe(5000); // Apr 14
+    expect(result.dailyBalances[5]!.balance).toBe(3000); // Apr 15
+    expect(result.dailyBalances[30]!.balance).toBe(3000); // May 10
+  });
+
+  it('final day matches projectedBalance', () => {
+    const today = new Date(2026, 3, 10);
+    const result = computeTimeline({
+      ...baseParams(today),
+      accounts: [makeAccount({ balance: 2000 })],
+      paydayConfig: { frequency: 'monthly', day: 25, amount: 8000, currency: 'PHP' },
+      budgets: [makeBudget({ dueDay: 15, monthlyLimit: 3000 })],
+      windowDays: 30,
+    });
+    expect(result.dailyBalances[30]!.balance).toBe(result.projectedBalance);
+  });
+});
