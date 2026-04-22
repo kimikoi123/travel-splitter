@@ -231,6 +231,11 @@ export interface ForecastEvent {
   isReminder?: boolean;
 }
 
+export interface DailyBalance {
+  date: Date;
+  balance: number;
+}
+
 export interface ForecastTimeline {
   events: ForecastEvent[];
   totalIn: number;
@@ -240,6 +245,7 @@ export interface ForecastTimeline {
   projectedBalance: number;
   minBalance: number;           // lowest running balance reached in the window
   minBalanceDate: Date | null;  // null means the starting balance is the minimum
+  dailyBalances: DailyBalance[]; // one entry per day from today through today+windowDays (inclusive)
 }
 
 /** Monthly-only next occurrence (used for payday, installments, credit cards) */
@@ -467,20 +473,33 @@ export function computeTimeline(params: {
     }, 0);
   const net = totalIn - totalOut;
 
-  // Running-balance walk — find the worst-day point within the window.
+  // Running-balance walk — produce per-day balances and find the worst-day dip.
+  const dailyBalances: DailyBalance[] = [];
   let running = startingBalance;
   let minBalance = startingBalance;
   let minBalanceDate: Date | null = null;
-  for (const e of events) {
-    if (e.isReminder) continue;
-    const converted = e.currency === defaultCurrency
-      ? e.amount
-      : convertToBase(e.amount, e.currency, defaultCurrency, exchangeRates);
-    running += converted;
-    if (running < minBalance) {
-      minBalance = running;
-      minBalanceDate = e.date;
+  let eventIdx = 0;
+  const sortedEvents = events; // already sorted by date above
+  for (let i = 0; i <= windowDays; i++) {
+    const day = new Date(today);
+    day.setDate(day.getDate() + i);
+    day.setHours(0, 0, 0, 0);
+    // Apply all events dated on or before this day that haven't been applied yet.
+    while (eventIdx < sortedEvents.length && sortedEvents[eventIdx]!.date.getTime() <= day.getTime()) {
+      const e = sortedEvents[eventIdx]!;
+      if (!e.isReminder) {
+        const converted = e.currency === defaultCurrency
+          ? e.amount
+          : convertToBase(e.amount, e.currency, defaultCurrency, exchangeRates);
+        running += converted;
+        if (running < minBalance) {
+          minBalance = running;
+          minBalanceDate = e.date;
+        }
+      }
+      eventIdx++;
     }
+    dailyBalances.push({ date: day, balance: running });
   }
 
   return {
@@ -492,5 +511,6 @@ export function computeTimeline(params: {
     projectedBalance: startingBalance + net,
     minBalance,
     minBalanceDate,
+    dailyBalances,
   };
 }
