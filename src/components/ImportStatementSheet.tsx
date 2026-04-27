@@ -151,9 +151,12 @@ export default function ImportStatementSheet({
 
     const result = parseStatement(textToParse);
     if (result.rows.length === 0) {
+      const first = result.errors[0]?.message;
+      const total = result.errors.length;
       setParseError(
-        result.errors[0]?.message ??
-          'Could not find any transactions in this file. Make sure it has a header row with a date and description column.',
+        total > 1 && first
+          ? `Could not parse ${total} rows. First error: ${first}`
+          : first ?? 'Could not find any transactions in this file. Make sure it has a header row with a date and description column.',
       );
       return;
     }

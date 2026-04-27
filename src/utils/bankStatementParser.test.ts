@@ -53,6 +53,25 @@ describe('parseDateCell', () => {
     expect(parseDateCell('')).toBeNull();
     expect(parseDateCell('99/99/9999')).toBeNull();
   });
+
+  it('infers year for short "Mon DD" forms when defaultYear is provided', () => {
+    expect(parseDateCell('Apr 08', 2026)?.iso).toBe('2026-04-08');
+    expect(parseDateCell('Mar 16', 2026)?.iso).toBe('2026-03-16');
+    expect(parseDateCell('December 31', 2025)?.iso).toBe('2025-12-31');
+  });
+
+  it('marks year-inferred dates with a warning', () => {
+    expect(parseDateCell('Apr 08', 2026)?.warning).toMatch(/inferred/i);
+  });
+
+  it('handles "DD Mon" (day-first short form)', () => {
+    expect(parseDateCell('08 Apr', 2026)?.iso).toBe('2026-04-08');
+    expect(parseDateCell('16 March', 2026)?.iso).toBe('2026-03-16');
+  });
+
+  it('does not infer year when defaultYear is missing', () => {
+    expect(parseDateCell('Apr 08')).toBeNull();
+  });
 });
 
 describe('parseAmountCell', () => {
@@ -238,6 +257,39 @@ nothing useful here`;
     const result = parseStatement(csv);
     expect(result.rows).toHaveLength(0);
     expect(result.errors.length).toBeGreaterThan(0);
+  });
+});
+
+describe('parseStatement – credit card statement with comma-dates and short dates', () => {
+  it('parses long-form dates that contain a comma', () => {
+    const csv = `Transaction Date,Description,Amount
+"Mar 16, 2026","7-ELEVEN, METRO CEBU",PHP 75.00
+"Mar 14, 2026","SHOPEE PH",PHP 363.00`;
+    const result = parseStatement(csv);
+    expect(result.errors).toHaveLength(0);
+    expect(result.rows).toHaveLength(2);
+    expect(result.rows[0]!.date).toBe('2026-03-16');
+    expect(result.rows[1]!.date).toBe('2026-03-14');
+  });
+
+  it('uses any 4-digit year in the file as a fallback for short-date rows', () => {
+    const csv = `Transaction Date,Description,Amount
+"Mar 16, 2026","7-ELEVEN",PHP 75.00
+"Apr 08","Some charge",PHP 200.00`;
+    const result = parseStatement(csv);
+    expect(result.errors).toHaveLength(0);
+    expect(result.rows).toHaveLength(2);
+    expect(result.rows[1]!.date).toBe('2026-04-08');
+    expect(result.rows[1]!.warnings).toContain('Year inferred from statement');
+  });
+
+  it('skips metadata rows (no amount) silently instead of erroring', () => {
+    const csv = `Transaction Date,Description,Amount
+"Statement period",Apr 01 - Apr 30,
+"Mar 16, 2026","7-ELEVEN",PHP 75.00`;
+    const result = parseStatement(csv);
+    expect(result.errors).toHaveLength(0);
+    expect(result.rows).toHaveLength(1);
   });
 });
 

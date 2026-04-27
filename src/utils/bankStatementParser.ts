@@ -78,7 +78,7 @@ const MONTH_MAP: Record<string, number> = {
   dec: 12, december: 12,
 };
 
-export function parseDateCell(raw: string): { iso: string; warning?: string } | null {
+export function parseDateCell(raw: string, defaultYear?: number): { iso: string; warning?: string } | null {
   if (!raw) return null;
   const trimmed = raw.trim();
   if (!trimmed) return null;
@@ -140,6 +140,41 @@ export function parseDateCell(raw: string): { iso: string; warning?: string } | 
     const y = parseInt(namedMonthSecond[3], 10);
     if (m && d >= 1 && d <= 31) {
       return { iso: `${y}-${pad2(m)}-${pad2(d)}` };
+    }
+  }
+
+  // Short forms without a year — common on credit card statements that show
+  // a "transaction date" column alongside a fully-dated "posting date".
+  // Only trusted when the caller provides a `defaultYear` from the
+  // statement's own context.
+  if (defaultYear !== undefined) {
+    // "Mar 16" or "March 16"
+    const shortMonthFirst = trimmed.toLowerCase().match(/^([a-z]{3,9})\.?\s+(\d{1,2})$/);
+    if (shortMonthFirst && shortMonthFirst[1] && shortMonthFirst[2]) {
+      const m = MONTH_MAP[shortMonthFirst[1]];
+      const d = parseInt(shortMonthFirst[2], 10);
+      if (m && d >= 1 && d <= 31) {
+        return { iso: `${defaultYear}-${pad2(m)}-${pad2(d)}`, warning: 'Year inferred from statement' };
+      }
+    }
+    // "16 Mar" / "16 March"
+    const shortMonthSecond = trimmed.toLowerCase().match(/^(\d{1,2})\s+([a-z]{3,9})\.?$/);
+    if (shortMonthSecond && shortMonthSecond[1] && shortMonthSecond[2]) {
+      const d = parseInt(shortMonthSecond[1], 10);
+      const m = MONTH_MAP[shortMonthSecond[2]];
+      if (m && d >= 1 && d <= 31) {
+        return { iso: `${defaultYear}-${pad2(m)}-${pad2(d)}`, warning: 'Year inferred from statement' };
+      }
+    }
+    // "Mar 16, 2026" with the year stripped or "Mar 16, " — defensively
+    // handled by trimming a trailing comma off shortMonthFirst's input.
+    const shortWithComma = trimmed.toLowerCase().replace(/,\s*$/, '').match(/^([a-z]{3,9})\.?\s+(\d{1,2})$/);
+    if (shortWithComma && shortWithComma[1] && shortWithComma[2]) {
+      const m = MONTH_MAP[shortWithComma[1]];
+      const d = parseInt(shortWithComma[2], 10);
+      if (m && d >= 1 && d <= 31) {
+        return { iso: `${defaultYear}-${pad2(m)}-${pad2(d)}`, warning: 'Year inferred from statement' };
+      }
     }
   }
 
@@ -319,6 +354,18 @@ export function parseStatement(csvText: string): ParseResult {
   let totalIncome = 0;
   let totalExpense = 0;
 
+  // Pre-scan the data rows for any 4-digit year. Some bank exports — credit
+  // card statements especially — render some rows as "Mar 16" with no year
+  // (paired with a fully-dated "posting date" elsewhere). We use the first
+  // found year as a fallback so those rows don't all error out.
+  let yearHint: number | undefined;
+  for (let i = headerIdx + 1; i < allLines.length && yearHint === undefined; i++) {
+    const line = allLines[i];
+    if (!line) continue;
+    const m = line.match(/(?:^|\D)(20\d{2})(?:\D|$)/);
+    if (m && m[1]) yearHint = parseInt(m[1], 10);
+  }
+
   for (let i = headerIdx + 1; i < allLines.length; i++) {
     const rawLine = allLines[i];
     if (!rawLine || rawLine.trim().length === 0) continue;
@@ -329,11 +376,23 @@ export function parseStatement(csvText: string): ParseResult {
 
     if (!dateRaw && !descRaw) continue; // blank-ish row, skip silently
 
-    const dateParsed = parseDateCell(dateRaw);
+    const dateParsed = parseDateCell(dateRaw, yearHint);
     if (!dateParsed) {
-      errors.push({ line: i + 1, message: `Could not parse date "${dateRaw}"`, rawLine });
+      // Skip silently if the row also has no usable amount — almost
+      // certainly metadata (statement-period header, page number, etc.)
+      // rather than a transaction the user expects to see imported.
+      const looksLikeTransaction =
+        (amountIdx >= 0 && parseAmountCell(cells[amountIdx] ?? '')) ||
+        (debitIdx >= 0 && parseAmountCell(cells[debitIdx] ?? '')) ||
+        (creditIdx >= 0 && parseAmountCell(cells[creditIdx] ?? ''));
+      if (looksLikeTransaction) {
+        errors.push({ line: i + 1, message: `Could not parse date "${dateRaw}"`, rawLine });
+      }
       continue;
     }
+    // Track the most recent fully-parsed year so subsequent short-date
+    // rows can fall back to it even if our pre-scan missed one.
+    yearHint = parseInt(dateParsed.iso.slice(0, 4), 10);
 
     let amount: number | null = null;
     let isNegative = false;

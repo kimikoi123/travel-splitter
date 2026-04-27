@@ -54,23 +54,40 @@ function assembleRow(items: MinimalTextItem[], columnGap: number): string {
   if (items.length === 0) return '';
   const sorted = [...items].sort((a, b) => (a.transform[4] ?? 0) - (b.transform[4] ?? 0));
 
-  let result = sorted[0]!.str;
+  // First pass: group adjacent items into cells based on their X-gap.
+  // A small gap means same cell (e.g. "GRAB" + "FOOD" emitted as separate
+  // text runs), a large gap means new column. Doing this in two passes
+  // matters because a cell may contain a comma (e.g. "Mar 16, 2026") —
+  // we can't decide whether to CSV-quote until we know the full cell text.
+  const cells: string[] = [];
+  let currentCell = sorted[0]!.str;
   let prevEnd = (sorted[0]!.transform[4] ?? 0) + (sorted[0]!.width || 0);
 
   for (let i = 1; i < sorted.length; i++) {
     const item = sorted[i]!;
     const x = item.transform[4] ?? 0;
     const gap = x - prevEnd;
-    // Quote any cell with a comma so the downstream CSV parser doesn't
-    // split it into bogus columns.
-    const cell = item.str.includes(',') ? `"${item.str.replace(/"/g, '""')}"` : item.str;
     if (gap > columnGap) {
-      result += ',' + cell;
+      cells.push(currentCell);
+      currentCell = item.str;
     } else {
-      const needsSpace = !result.endsWith(' ') && !item.str.startsWith(' ');
-      result += (needsSpace ? ' ' : '') + cell;
+      const needsSpace = !currentCell.endsWith(' ') && !item.str.startsWith(' ');
+      currentCell += (needsSpace ? ' ' : '') + item.str;
     }
     prevEnd = x + (item.width || 0);
   }
-  return result.replace(/\s+/g, ' ').trim();
+  cells.push(currentCell);
+
+  // Second pass: CSV-encode each fully-assembled cell. Cells containing
+  // commas, double-quotes, or newlines must be quoted per RFC 4180 so the
+  // downstream parseCSVLine doesn't split them into bogus columns.
+  return cells
+    .map((c) => {
+      const cleaned = c.replace(/\s+/g, ' ').trim();
+      if (cleaned.includes(',') || cleaned.includes('"') || cleaned.includes('\n')) {
+        return `"${cleaned.replace(/"/g, '""')}"`;
+      }
+      return cleaned;
+    })
+    .join(',');
 }
