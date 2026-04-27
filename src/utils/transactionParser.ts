@@ -100,7 +100,7 @@ function extractAmount(input: string): { amount: number; remaining: string } | n
   return { amount, remaining: remaining.replace(/\s+/g, ' ').trim() };
 }
 
-function detectCategory(description: string): CategoryMapping {
+export function detectCategory(description: string): CategoryMapping {
   const words = description.toLowerCase().split(/\s+/);
   for (const word of words) {
     const cleaned = word.replace(/[^a-z]/g, '');
@@ -110,6 +110,8 @@ function detectCategory(description: string): CategoryMapping {
   }
   return { category: 'other', type: 'expense' };
 }
+
+export type { CategoryMapping };
 
 export function parseTransactionInput(input: string): ParsedTransaction | null {
   const trimmed = input.trim().replace(/\s+/g, ' ');

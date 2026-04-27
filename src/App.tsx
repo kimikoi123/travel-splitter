@@ -82,7 +82,7 @@ function App() {
   const { toasts, showToast, undoToast, dismissToast, duration } = useToast();
   const { theme, setTheme } = useTheme();
   const { privacyMode, togglePrivacyMode } = usePrivacyMode();
-  const { transactions, addTransaction, editTransaction, removeTransaction } = useTransactions();
+  const { transactions, addTransaction, addTransactions, editTransaction, removeTransaction } = useTransactions();
   const { preferences, loading: prefsLoading, updatePreferences } = useUserPreferences();
   const { accounts, netWorth, addAccount, editAccount, removeAccount, reorderAccounts } = useAccounts();
   const { budgets: budgetsWithSpending, loading: budgetsLoading, addBudget, editBudget, removeBudget, runAutoConfirmOnce } = useBudgets(transactions);
@@ -620,6 +620,7 @@ function App() {
             displayName={preferences.displayName}
             onEdit={handleEditTransaction}
             onDelete={handleDeleteTransaction}
+            onImport={addTransactions}
             showToast={showToast}
           />
         )}

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { Transaction } from '../types';
 import {
   addTransaction as dbAddTransaction,
+  addTransactionsBulk as dbAddTransactionsBulk,
   getTransactions,
   deleteTransaction as dbDeleteTransaction,
   updateTransaction as dbUpdateTransaction,
@@ -32,6 +33,19 @@ export function useTransactions() {
     return newTxn;
   }, []);
 
+  const addTransactions = useCallback(async (txns: Omit<Transaction, 'id' | 'createdAt'>[]) => {
+    if (txns.length === 0) return [];
+    const now = new Date().toISOString();
+    const newTxns: Transaction[] = txns.map((t) => ({
+      ...t,
+      id: crypto.randomUUID(),
+      createdAt: now,
+    }));
+    await dbAddTransactionsBulk(newTxns);
+    setTransactions((prev) => [...newTxns, ...prev]);
+    return newTxns;
+  }, []);
+
   const removeTransaction = useCallback(async (id: string) => {
     await dbDeleteTransaction(id);
     setTransactions((prev) => prev.filter((t) => t.id !== id));
@@ -44,5 +58,5 @@ export function useTransactions() {
     );
   }, []);
 
-  return { transactions, loading, addTransaction, removeTransaction, editTransaction };
+  return { transactions, loading, addTransaction, addTransactions, removeTransaction, editTransaction };
 }
