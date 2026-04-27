@@ -99,6 +99,32 @@ describe('rowsFromTextItems', () => {
     expect(rows[0]).toBe('01/15/2026,"Lazada: shoes, socks, shirt",-1500.00');
   });
 
+  it('quotes the FIRST cell when it contains a comma (regression: dates like "Mar 16, 2026")', () => {
+    // Banks render long-form dates as a single PDF text item. When that
+    // item lands in column 1, an earlier version emitted it unquoted,
+    // which made the downstream CSV parser split the date in two.
+    const items = makeItems([
+      { str: 'Mar 16, 2026', x: 50, y: 700, width: 60 },
+      { str: '7-ELEVEN', x: 150, y: 700, width: 60 },
+      { str: 'PHP 75.00', x: 400, y: 700, width: 50 },
+    ]);
+    expect(rowsFromTextItems(items)).toEqual(['"Mar 16, 2026",7-ELEVEN,PHP 75.00']);
+  });
+
+  it('joins multi-run dates into one quoted cell', () => {
+    // PDFs sometimes split "Mar 16, 2026" into multiple text runs at
+    // glyph boundaries. The cell-grouping pass should re-assemble them
+    // before deciding whether to quote.
+    const items = makeItems([
+      { str: 'Mar', x: 50, y: 700, width: 18 },
+      { str: '16,', x: 70, y: 700, width: 12 },
+      { str: '2026', x: 84, y: 700, width: 25 },
+      { str: '7-ELEVEN', x: 200, y: 700, width: 60 },
+      { str: 'PHP 75.00', x: 400, y: 700, width: 50 },
+    ]);
+    expect(rowsFromTextItems(items)).toEqual(['"Mar 16, 2026",7-ELEVEN,PHP 75.00']);
+  });
+
   it('respects a custom row tolerance', () => {
     // With default tolerance (3), these would be 3 separate rows.
     // With tolerance 10, they collapse into one.
