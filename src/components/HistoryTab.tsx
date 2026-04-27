@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
-import { Search, X, Inbox, Pencil, Trash2, Download } from 'lucide-react';
+import { Search, X, Inbox, Pencil, Trash2, Download, Upload } from 'lucide-react';
 import type { Transaction, Account } from '../types';
 import { formatCurrency } from '../utils/currencies';
 import { getFinanceCategoryDef } from '../utils/categories';
 import { TOAST_DURATION } from '../hooks/useToast';
 import ExportSheet from './ExportSheet';
+import ImportStatementSheet from './ImportStatementSheet';
 
 interface HistoryTabProps {
   transactions: Transaction[];
@@ -13,6 +14,7 @@ interface HistoryTabProps {
   displayName: string;
   onEdit?: (transaction: Transaction) => void;
   onDelete?: (id: string) => void;
+  onImport?: (txns: Omit<Transaction, 'id' | 'createdAt'>[]) => Promise<unknown>;
   showToast?: (message: string, onCommit: () => void) => string;
 }
 
@@ -29,11 +31,12 @@ function getDateLabel(dateStr: string, todayStr: string, yesterdayStr: string): 
   return `${weekday}, ${month} ${day}`;
 }
 
-export default function HistoryTab({ transactions, accounts, defaultCurrency, displayName, onEdit, onDelete, showToast }: HistoryTabProps) {
+export default function HistoryTab({ transactions, accounts, defaultCurrency, displayName, onEdit, onDelete, onImport, showToast }: HistoryTabProps) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
   const [pendingDeletes, setPendingDeletes] = useState<Set<string>>(new Set());
   const [showExportSheet, setShowExportSheet] = useState(false);
+  const [showImportSheet, setShowImportSheet] = useState(false);
 
   const handleDelete = (t: Transaction) => {
     if (!onDelete || !showToast) return;
@@ -104,16 +107,28 @@ export default function HistoryTab({ transactions, accounts, defaultCurrency, di
         <h1 className="text-2xl font-bold text-text-primary tracking-tight" data-heading>
           History
         </h1>
-        {transactions.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setShowExportSheet(true)}
-            aria-label="Export statement"
-            className="w-9 h-9 flex items-center justify-center rounded-xl text-text-secondary hover:text-primary active:opacity-60 transition-colors"
-          >
-            <Download size={18} />
-          </button>
-        )}
+        <div className="flex items-center gap-1">
+          {onImport && (
+            <button
+              type="button"
+              onClick={() => setShowImportSheet(true)}
+              aria-label="Import transactions"
+              className="w-9 h-9 flex items-center justify-center rounded-xl text-text-secondary hover:text-primary active:opacity-60 transition-colors"
+            >
+              <Upload size={18} />
+            </button>
+          )}
+          {transactions.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowExportSheet(true)}
+              aria-label="Export statement"
+              className="w-9 h-9 flex items-center justify-center rounded-xl text-text-secondary hover:text-primary active:opacity-60 transition-colors"
+            >
+              <Download size={18} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Search bar */}
@@ -165,6 +180,16 @@ export default function HistoryTab({ transactions, accounts, defaultCurrency, di
             <p className="text-sm text-text-secondary">
               Tap + to add your first expense or income
             </p>
+            {onImport && (
+              <button
+                type="button"
+                onClick={() => setShowImportSheet(true)}
+                className="mt-2 flex items-center gap-1.5 bg-surface-light border border-border rounded-xl px-3 py-1.5 text-xs text-text-primary hover:border-primary transition-colors"
+              >
+                <Upload size={14} />
+                Or import a bank statement
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -267,6 +292,17 @@ export default function HistoryTab({ transactions, accounts, defaultCurrency, di
           defaultCurrency={defaultCurrency}
           displayName={displayName}
           onClose={() => setShowExportSheet(false)}
+        />
+      )}
+
+      {showImportSheet && onImport && (
+        <ImportStatementSheet
+          accounts={accounts}
+          existingTransactions={transactions}
+          defaultCurrency={defaultCurrency}
+          onImport={onImport}
+          onClose={() => setShowImportSheet(false)}
+          {...(showToast ? { showToast } : {})}
         />
       )}
     </div>

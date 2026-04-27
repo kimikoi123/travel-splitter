@@ -236,6 +236,31 @@ export async function addTransaction(txn: Transaction): Promise<void> {
   await enqueuePush('transaction', txn.id);
 }
 
+// Bulk insert: stamps each row, writes them in a single Dexie transaction,
+// and enqueues all pushes at once. Used by CSV / bank-statement import where
+// dozens to hundreds of rows arrive together — calling addTransaction in a
+// loop would mean one round-trip and one sync notification per row.
+export async function addTransactionsBulk(txns: Transaction[]): Promise<void> {
+  if (txns.length === 0) return;
+  const now = Date.now();
+  const stamped: Transaction[] = txns.map((t) => ({ ...t, updatedAt: now }));
+  const syncEnabled = hasIdentity();
+  await db.transaction('rw', db.transactions, db.pendingPushes, async () => {
+    await db.transactions.bulkPut(stamped);
+    if (syncEnabled) {
+      await db.pendingPushes.bulkPut(
+        stamped.map((t) => ({
+          id: `transaction:${t.id}`,
+          entityType: 'transaction' as const,
+          entityId: t.id,
+          enqueuedAt: now,
+        })),
+      );
+    }
+  });
+  if (syncEnabled) notifySyncEngine();
+}
+
 export async function getTransactions(): Promise<Transaction[]> {
   const all = await db.transactions.orderBy('date').reverse().toArray();
   return all.filter((t) => !t.deletedAt);
