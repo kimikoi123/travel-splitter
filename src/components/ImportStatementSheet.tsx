@@ -562,11 +562,19 @@ function PreviewStep({
   return (
     <div className="space-y-3">
       {/* Detected format banner */}
-      <div className="flex items-center gap-2 bg-primary/10 border border-primary/30 rounded-xl p-3 text-sm">
-        <FileText size={16} className="text-primary shrink-0" />
-        <span className="text-text-primary">
-          <strong>Detected:</strong> {parseResult.formatLabel}
-        </span>
+      <div className="flex items-start gap-2 bg-primary/10 border border-primary/30 rounded-xl p-3 text-sm">
+        <FileText size={16} className="text-primary shrink-0 mt-0.5" />
+        <div className="flex-1">
+          <span className="text-text-primary">
+            <strong>Detected:</strong> {parseResult.formatLabel}
+            {parseResult.isCreditCard ? ' · Credit Card' : ''}
+          </span>
+          {parseResult.isCreditCard && (
+            <p className="text-xs text-text-secondary mt-0.5">
+              Charges are imported as expenses. Payments to the card show as income — re-categorize or skip if you'll record the bank-side transfer separately.
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Summary */}

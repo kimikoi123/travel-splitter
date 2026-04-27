@@ -99,6 +99,15 @@ describe('parseAmountCell', () => {
     expect(parseAmountCell('$50')).toEqual({ amount: 50, isNegative: false });
   });
 
+  it('parses negatives with the currency code before the minus (UnionBank credit card)', () => {
+    // UnionBank renders payment rows as "PHP -23,815.21". The currency code
+    // sits before the sign, so the leading-minus check has to come AFTER
+    // currency stripping.
+    expect(parseAmountCell('PHP -23,815.21')).toEqual({ amount: 23815.21, isNegative: true });
+    expect(parseAmountCell('PHP -100')).toEqual({ amount: 100, isNegative: true });
+    expect(parseAmountCell('₱ -500.50')).toEqual({ amount: 500.5, isNegative: true });
+  });
+
   it('returns null for empty or non-numeric input', () => {
     expect(parseAmountCell('')).toBeNull();
     expect(parseAmountCell('   ')).toBeNull();
@@ -312,6 +321,102 @@ describe('parseStatement – type override', () => {
     expect(result.rows[0]!.type).toBe('income');
     // 'refund' is an income category, so it stays
     expect(result.rows[0]!.category).toBe('refund');
+  });
+});
+
+describe('parseStatement – UnionBank credit card statement', () => {
+  // Fixture mirrors what pdfRowAssembly emits for a UnionBank Rewards Platinum
+  // Visa Credit Card statement of account: metadata at the top (statement
+  // date, card details, summary, due date), then a "DATE,DESCRIPTION,AMOUNT"
+  // header, then transaction rows. The page-2 column header is also included
+  // mid-data to verify it gets silently skipped.
+  const unionbankCC = `UnionBank
+Statement of Account
+"Statement Date: April 08, 2026",Available Points*
+13132 PTS
+Rewards Platinum Visa Credit Card
+CARD NUMBER
+**** **** **** 8928
+NAME
+KIMUEL ARVIN SUMBILLO ANQUI
+CREDIT LIMIT
+"PHP 80,000"
+Summary
+Previous Balance,"PHP 23,815.21"
+Purchases and Advances,"PHP 21,527.62"
+Payments & Credits,"PHP -23,815.21"
+Due Date,Minimum Amount Due,Total Amount Due
+"April 27, 2026",PHP 531.88,"PHP 21,527.62"
+Important Reminder: Paying less than the total amount due will increase the amount of interest and other charges you pay and the time it takes to repay your balance.
+Transactions
+DATE,DESCRIPTION,AMOUNT
+"Apr 08, 2026","SHOPEE PH, MANDALUYONG, PH",PHP 155.00
+"Apr 08, 2026",(08/24) DIGIMAP-IL CORSO CEBU,"PHP 1,978.75"
+"Apr 07, 2026","PETRON 1029031 F, SIBULAN, PH","PHP 3,000.00"
+"Apr 07, 2026","RAILWAY, RAILWAY.COM, US (USD 5.00)",PHP 311.27
+"Apr 06, 2026","LAMBOJON TERRACES SQJR P, SIQUIJOR, PH","PHP 4,930.00"
+DATE,DESCRIPTION,AMOUNT
+"Mar 17, 2026","Google CapCut Video E, London, GB",PHP 95.95
+"Mar 13, 2026",Payment via UB Online UB1376959,"PHP -23,815.21"
+"Mar 07, 2026","UDEMY: ONLINE COURSES, UDEMY.COM, US",PHP 483.79`;
+
+  it('detects the credit card format', () => {
+    const result = parseStatement(unionbankCC);
+    expect(result.format).toBe('unionbank');
+    expect(result.formatLabel).toBe('UnionBank');
+    expect(result.isCreditCard).toBe(true);
+  });
+
+  it('captures every transaction row (and skips repeated mid-statement headers)', () => {
+    const result = parseStatement(unionbankCC);
+    expect(result.errors).toHaveLength(0);
+    expect(result.rows).toHaveLength(8);
+  });
+
+  it('treats a positive charge as an expense (cardholder spent money)', () => {
+    const result = parseStatement(unionbankCC);
+    const shopee = result.rows[0]!;
+    expect(shopee.date).toBe('2026-04-08');
+    expect(shopee.description).toBe('SHOPEE PH, MANDALUYONG, PH');
+    expect(shopee.amount).toBe(155);
+    expect(shopee.type).toBe('expense');
+  });
+
+  it('treats a negative payment row as income (payment received against the card balance)', () => {
+    const result = parseStatement(unionbankCC);
+    const payment = result.rows.find((r) => r.description.includes('Payment via UB Online'))!;
+    expect(payment).toBeDefined();
+    expect(payment.date).toBe('2026-03-13');
+    expect(payment.amount).toBe(23815.21);
+    expect(payment.type).toBe('income');
+  });
+
+  it('preserves merchant descriptions that contain commas', () => {
+    const result = parseStatement(unionbankCC);
+    const railway = result.rows.find((r) => r.description.startsWith('RAILWAY'))!;
+    expect(railway).toBeDefined();
+    expect(railway.description).toBe('RAILWAY, RAILWAY.COM, US (USD 5.00)');
+    expect(railway.amount).toBe(311.27);
+    expect(railway.type).toBe('expense');
+  });
+
+  it('parses thousands-separator amounts on credit-card charges', () => {
+    const result = parseStatement(unionbankCC);
+    const lambojon = result.rows.find((r) => r.description.startsWith('LAMBOJON'))!;
+    expect(lambojon.amount).toBe(4930);
+    expect(lambojon.type).toBe('expense');
+  });
+
+  it('does not flip the sign on a normal debit-account statement', () => {
+    // Sanity: the debit-account fixture from the BPI suite must keep its
+    // original sign convention even though the parser now knows about CCs.
+    const csv = `Transaction Date,Description,Amount
+01/15/2026,GRAB FOOD,-250.00
+01/16/2026,Salary deposit,30000.00`;
+    const result = parseStatement(csv);
+    expect(result.isCreditCard).toBe(false);
+    expect(result.rows[0]!.type).toBe('expense'); // negative → expense
+    expect(result.rows[1]!.type).toBe('income');  // positive → income
   });
 });
 

@@ -125,6 +125,44 @@ describe('rowsFromTextItems', () => {
     expect(rowsFromTextItems(items)).toEqual(['"Mar 16, 2026",7-ELEVEN,PHP 75.00']);
   });
 
+  it('groups a multi-comma merchant description into a single quoted cell (UnionBank shape)', () => {
+    // pdfjs frequently splits descriptions like "SHOPEE PH, MANDALUYONG, PH"
+    // at glyph boundaries — each comma-terminated chunk lands as its own
+    // text run at adjacent X positions. The cell builder must merge them
+    // before CSV-encoding so the downstream parser sees one description.
+    const items = makeItems([
+      { str: 'Apr', x: 60, y: 700, width: 18 },
+      { str: '08,', x: 80, y: 700, width: 12 },
+      { str: '2026', x: 94, y: 700, width: 25 },
+      { str: 'SHOPEE', x: 140, y: 700, width: 35 },
+      { str: 'PH,', x: 178, y: 700, width: 15 },
+      { str: 'MANDALUYONG,', x: 196, y: 700, width: 55 },
+      { str: 'PH', x: 254, y: 700, width: 10 },
+      { str: 'PHP', x: 460, y: 700, width: 20 },
+      { str: '155.00', x: 483, y: 700, width: 30 },
+    ]);
+    expect(rowsFromTextItems(items)).toEqual([
+      '"Apr 08, 2026","SHOPEE PH, MANDALUYONG, PH",PHP 155.00',
+    ]);
+  });
+
+  it('keeps "PHP -23,815.21" as a single negative amount cell', () => {
+    // UnionBank renders payment rows with the currency code, sign and
+    // number all as adjacent text runs. The cell builder should join them
+    // and then quote the result because of the embedded comma.
+    const items = makeItems([
+      { str: 'Mar', x: 60, y: 700, width: 18 },
+      { str: '13,', x: 80, y: 700, width: 12 },
+      { str: '2026', x: 94, y: 700, width: 25 },
+      { str: 'Payment via UB Online UB1376959', x: 140, y: 700, width: 220 },
+      { str: 'PHP', x: 430, y: 700, width: 20 },
+      { str: '-23,815.21', x: 453, y: 700, width: 55 },
+    ]);
+    expect(rowsFromTextItems(items)).toEqual([
+      '"Mar 13, 2026",Payment via UB Online UB1376959,"PHP -23,815.21"',
+    ]);
+  });
+
   it('respects a custom row tolerance', () => {
     // With default tolerance (3), these would be 3 separate rows.
     // With tolerance 10, they collapse into one.

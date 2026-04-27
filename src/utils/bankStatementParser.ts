@@ -16,6 +16,12 @@ export interface ParsedStatementRow {
 export interface ParseResult {
   format: BankFormat;
   formatLabel: string;
+  // True when the source looks like a credit card statement (Statement of
+  // Account with credit-card-specific summary fields). Credit cards use the
+  // opposite sign convention from a debit account: a positive amount is a
+  // charge (expense for the cardholder) and a negative amount is a payment
+  // received against the balance.
+  isCreditCard: boolean;
   rows: ParsedStatementRow[];
   errors: { line: number; message: string; rawLine: string }[];
   totalIncome: number;
@@ -192,6 +198,13 @@ export function parseAmountCell(raw: string): { amount: number; isNegative: bool
     isNegative = true;
     s = s.slice(1, -1).trim();
   }
+
+  // Strip currency symbols and ISO codes BEFORE checking for a leading sign,
+  // so cells like "PHP -23,815.21" (UnionBank credit card) are recognized as
+  // negative — pdfjs sometimes emits "PHP" and the number as adjacent text
+  // runs that get merged with the sign sandwiched between them.
+  s = s.replace(/[₱$€£¥]/g, '').replace(/\b(php|usd|eur|gbp|jpy)\b/gi, '').trim();
+
   if (s.startsWith('-')) {
     isNegative = true;
     s = s.slice(1).trim();
@@ -199,8 +212,6 @@ export function parseAmountCell(raw: string): { amount: number; isNegative: bool
     s = s.slice(1).trim();
   }
 
-  // Strip currency symbols and ISO codes
-  s = s.replace(/[₱$€£¥]/g, '').replace(/\b(php|usd|eur|gbp|jpy)\b/gi, '').trim();
   // Strip thousands separators
   s = s.replace(/,/g, '');
 
@@ -284,6 +295,33 @@ function detectFormatFromText(rawText: string, headers: string[]): { format: Ban
   return { format: 'generic', label: 'Generic CSV' };
 }
 
+// Phrases that strongly imply a credit card statement of account. We require
+// at least two distinct hits before flipping the sign convention — single
+// hits like "credit card" can appear in disclaimers on debit-account exports.
+const CREDIT_CARD_SIGNALS = [
+  'credit card',
+  'credit limit',
+  'minimum amount due',
+  'previous balance',
+  'purchases and advances',
+  'available points',
+  'statement of account',
+  'payments & credits',
+  'payments and credits',
+];
+
+function isCreditCardStatement(rawText: string): boolean {
+  const haystack = rawText.slice(0, 4000).toLowerCase();
+  let hits = 0;
+  for (const sig of CREDIT_CARD_SIGNALS) {
+    if (haystack.includes(sig)) {
+      hits++;
+      if (hits >= 2) return true;
+    }
+  }
+  return false;
+}
+
 export function generateSignature(date: string, amount: number, description: string): string {
   const desc = description.toLowerCase().replace(/\s+/g, ' ').trim();
   return `${date}|${amount.toFixed(2)}|${desc}`;
@@ -302,6 +340,7 @@ export function parseStatement(csvText: string): ParseResult {
     return {
       format: 'generic',
       formatLabel: 'Generic CSV',
+      isCreditCard: false,
       rows: [],
       errors: [{ line: 0, message: 'Could not find a header row with both a date and a description column.', rawLine: '' }],
       totalIncome: 0,
@@ -312,6 +351,7 @@ export function parseStatement(csvText: string): ParseResult {
 
   const { index: headerIdx, headers } = headerSearch;
   const detected = detectFormatFromText(text, headers);
+  const isCreditCard = isCreditCardStatement(text);
 
   const dateIdx = findColumnIndex(headers, COLUMN_NAMES.date);
   const descIdx = findColumnIndex(headers, COLUMN_NAMES.description);
@@ -331,6 +371,7 @@ export function parseStatement(csvText: string): ParseResult {
     return {
       format: detected.format,
       formatLabel: detected.label,
+      isCreditCard,
       rows: [],
       errors: [{ line: headerIdx + 1, message: 'Date or description column not found in headers.', rawLine: allLines[headerIdx] ?? '' }],
       totalIncome: 0,
@@ -343,6 +384,7 @@ export function parseStatement(csvText: string): ParseResult {
     return {
       format: detected.format,
       formatLabel: detected.label,
+      isCreditCard,
       rows: [],
       errors: [{ line: headerIdx + 1, message: 'No amount, debit, or credit column found.', rawLine: allLines[headerIdx] ?? '' }],
       totalIncome: 0,
@@ -429,7 +471,12 @@ export function parseStatement(csvText: string): ParseResult {
     // Type from sign overrides keyword-based type detection. The bank
     // statement is authoritative — if the row is a debit, it's an expense
     // even if the description happens to contain a keyword like "salary".
-    const type: 'income' | 'expense' = isNegative ? 'expense' : 'income';
+    //
+    // Credit card statements use the opposite convention: a positive amount
+    // is a charge (expense for the cardholder), and a negative amount is a
+    // payment received against the card balance.
+    const treatAsExpense = isCreditCard ? !isNegative : isNegative;
+    const type: 'income' | 'expense' = treatAsExpense ? 'expense' : 'income';
     // Pick a category that fits the detected type. If detectCategory
     // returned a category for the wrong type, fall back to a generic one.
     let category = categoryGuess.category;
@@ -461,6 +508,7 @@ export function parseStatement(csvText: string): ParseResult {
   return {
     format: detected.format,
     formatLabel: detected.label,
+    isCreditCard,
     rows,
     errors,
     totalIncome,
