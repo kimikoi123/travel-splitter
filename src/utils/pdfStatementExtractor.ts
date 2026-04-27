@@ -37,7 +37,29 @@ export async function extractStatementText(
   // re-use the same input (e.g. on a password retry).
   const data = source instanceof Uint8Array ? new Uint8Array(source) : new Uint8Array(source.slice(0));
 
-  const loadingTaskParams: { data: Uint8Array; password?: string } = { data };
+  // We only need text extraction — no rendering — so we turn off the pdfjs
+  // features that rely on browser APIs which fail on iOS Safari (especially
+  // when running as a PWA):
+  //   - isEvalSupported: pdfjs JIT-compiles PDF function subroutines via
+  //     `new Function(...)`. iOS Safari blocks/sandboxes Function eval in
+  //     PWAs, surfacing as "undefined is not a function (near '...')".
+  //   - disableFontFace + useSystemFonts: skips Font Loading API.
+  //   - isOffscreenCanvasSupported: avoids the worker-side OffscreenCanvas
+  //     path, which has had reliability issues on Safari.
+  const loadingTaskParams: {
+    data: Uint8Array;
+    password?: string;
+    isEvalSupported: boolean;
+    disableFontFace: boolean;
+    useSystemFonts: boolean;
+    isOffscreenCanvasSupported: boolean;
+  } = {
+    data,
+    isEvalSupported: false,
+    disableFontFace: true,
+    useSystemFonts: false,
+    isOffscreenCanvasSupported: false,
+  };
   if (opts.password) loadingTaskParams.password = opts.password;
 
   const loadingTask = pdfjsLib.getDocument(loadingTaskParams);
