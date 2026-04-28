@@ -14,7 +14,28 @@ import type { TextItem } from 'pdfjs-dist/types/src/display/api';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { rowsFromTextItems, type MinimalTextItem } from './pdfRowAssembly';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+// pdfjs-dist 5.x uses `Promise.withResolvers()` everywhere, including inside
+// its worker. iOS Safari < 17.4 doesn't ship that API, so the worker crashes
+// the moment it's called with "undefined is not a function". We can't reach
+// the worker's globals from the main thread, so we wrap the worker URL with
+// a tiny Blob module that polyfills first, then dynamic-imports the real
+// pdfjs worker. Top-level `await` ensures the polyfill is in place before
+// pdfjs's class field initializers run.
+function makePolyfilledWorkerSrc(realWorkerUrl: string): string {
+  const absolute = new URL(realWorkerUrl, self.location.href).href;
+  const shim = `if (typeof Promise.withResolvers !== 'function') {
+  Promise.withResolvers = function () {
+    let resolve, reject;
+    const promise = new Promise((res, rej) => { resolve = res; reject = rej; });
+    return { promise, resolve, reject };
+  };
+}
+await import(${JSON.stringify(absolute)});`;
+  const blob = new Blob([shim], { type: 'application/javascript' });
+  return URL.createObjectURL(blob);
+}
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = makePolyfilledWorkerSrc(workerUrl);
 
 export class PdfPasswordRequiredError extends Error {
   constructor(public reason: 'needed' | 'incorrect') {
